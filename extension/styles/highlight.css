@@ -1,0 +1,240 @@
+/**
+ * Obsidian Web Clipper - Highlight Styles
+ * 
+ * Styles for text highlighting and annotation UI.
+ */
+
+/* Highlight colors */
+:root {
+  --owc-highlight-yellow: rgba(255, 235, 59, 0.4);
+  --owc-highlight-green: rgba(76, 175, 80, 0.4);
+  --owc-highlight-blue: rgba(33, 150, 243, 0.4);
+  --owc-highlight-pink: rgba(233, 30, 99, 0.4);
+  --owc-highlight-purple: rgba(156, 39, 176, 0.4);
+  --owc-ui-bg: #1e1e1e;
+  --owc-ui-text: #e0e0e0;
+  --owc-ui-accent: #7c3aed;
+  --owc-ui-border: #404040;
+  --owc-ui-shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Base highlight mark */
+.owc-highlight {
+  background-color: var(--owc-highlight-yellow);
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.owc-highlight:hover {
+  filter: brightness(0.9);
+}
+
+/* Highlight with note indicator */
+.owc-highlight.has-note::after {
+  content: '💬';
+  font-size: 10px;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  pointer-events: none;
+}
+
+/* Color variations */
+.owc-highlight.color-yellow {
+  background-color: var(--owc-highlight-yellow);
+}
+
+.owc-highlight.color-green {
+  background-color: var(--owc-highlight-green);
+}
+
+.owc-highlight.color-blue {
+  background-color: var(--owc-highlight-blue);
+}
+
+.owc-highlight.color-pink {
+  background-color: var(--owc-highlight-pink);
+}
+
+.owc-highlight.color-purple {
+  background-color: var(--owc-highlight-purple);
+}
+
+/* Selection menu */
+.owc-selection-menu {
+  position: fixed;
+  z-index: 2147483647;
+  background: var(--owc-ui-bg);
+  border: 1px solid var(--owc-ui-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--owc-ui-shadow);
+  padding: 8px;
+  display: flex;
+  gap: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: owc-fade-in 0.15s ease;
+}
+
+@keyframes owc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Menu buttons */
+.owc-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--owc-ui-text);
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.15s ease;
+}
+
+.owc-menu-btn:hover {
+  background: var(--owc-ui-accent);
+}
+
+.owc-menu-btn.active {
+  background: var(--owc-ui-accent);
+}
+
+/* Color picker */
+.owc-color-picker {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+  border-right: 1px solid var(--owc-ui-border);
+  margin-right: 4px;
+  padding-right: 8px;
+}
+
+.owc-color-btn {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.owc-color-btn:hover {
+  transform: scale(1.1);
+}
+
+.owc-color-btn.active {
+  border-color: var(--owc-ui-text);
+}
+
+.owc-color-btn.yellow { background: var(--owc-highlight-yellow); }
+.owc-color-btn.green { background: var(--owc-highlight-green); }
+.owc-color-btn.blue { background: var(--owc-highlight-blue); }
+.owc-color-btn.pink { background: var(--owc-highlight-pink); }
+.owc-color-btn.purple { background: var(--owc-highlight-purple); }
+
+/* Note input popup */
+.owc-note-popup {
+  position: fixed;
+  z-index: 2147483647;
+  background: var(--owc-ui-bg);
+  border: 1px solid var(--owc-ui-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px var(--owc-ui-shadow);
+  padding: 12px;
+  width: 280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: owc-fade-in 0.15s ease;
+}
+
+.owc-note-popup textarea {
+  width: 100%;
+  height: 80px;
+  padding: 8px;
+  border: 1px solid var(--owc-ui-border);
+  border-radius: 6px;
+  background: #2d2d2d;
+  color: var(--owc-ui-text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.owc-note-popup textarea:focus {
+  outline: none;
+  border-color: var(--owc-ui-accent);
+}
+
+.owc-note-popup textarea::placeholder {
+  color: #808080;
+}
+
+.owc-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.owc-note-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.owc-note-btn.primary {
+  background: var(--owc-ui-accent);
+  color: white;
+}
+
+.owc-note-btn.primary:hover {
+  background: #6d28d9;
+}
+
+.owc-note-btn.secondary {
+  background: #3d3d3d;
+  color: var(--owc-ui-text);
+}
+
+.owc-note-btn.secondary:hover {
+  background: #4d4d4d;
+}
+
+/* Highlight count badge */
+.owc-highlight-count {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2147483646;
+  background: var(--owc-ui-accent);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 2px 8px var(--owc-ui-shadow);
+  display: none;
+}
+
+.owc-highlight-count.visible {
+  display: block;
+  animation: owc-fade-in 0.2s ease;
+}

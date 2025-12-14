@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Obsidian Web Clipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="title">Obsidian Web Clipper</h1>
+      <div id="status-indicator" class="status-indicator status-unknown"></div>
+    </header>
+
+    <main class="main">
+      <!-- Status Message -->
+      <div id="status-message" class="status-message hidden"></div>
+
+      <!-- Page Info -->
+      <div id="page-info" class="page-info">
+        <div class="page-title" id="page-title">Loading...</div>
+        <div class="page-url" id="page-url"></div>
+      </div>
+
+      <!-- Save Button -->
+      <button id="save-btn" class="btn btn-primary" disabled>
+        <span class="btn-icon">📥</span>
+        <span class="btn-text">Save to Obsidian</span>
+      </button>
+
+      <!-- Progress Indicator -->
+      <div id="progress" class="progress hidden">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">Preparing...</div>
+      </div>
+
+      <!-- Success/Error Result -->
+      <div id="result" class="result hidden">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-message" id="result-message"></div>
+        <div class="result-path" id="result-path"></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <a href="#" id="settings-link" class="footer-link">⚙️ Settings</a>
+      <span class="footer-divider">|</span>
+      <span class="footer-version">v0.1.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

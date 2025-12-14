@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Obsidian Web Clipper - Settings</title>
+  <style>
+    :root {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2d2d2d;
+      --bg-input: #3d3d3d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --success: #10b981;
+      --error: #ef4444;
+      --border: #404040;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .section {
+      background-color: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .label-hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="url"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-input);
+      border-radius: 24px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background-color: var(--accent);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--border);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .status {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+
+    .status.success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status.error {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .ai-settings {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .ai-settings.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Settings</h1>
+    <p class="subtitle">Configure your Obsidian Web Clipper</p>
+
+    <div id="status" class="status hidden"></div>
+
+    <!-- Server Settings -->
+    <div class="section">
+      <h2 class="section-title">🔌 Server Connection</h2>
+      
+      <div class="form-group">
+        <label for="serverUrl">
+          Server URL
+          <span class="label-hint">The address of your local clipper server</span>
+        </label>
+        <input type="url" id="serverUrl" placeholder="http://localhost:18080">
+      </div>
+      
+      <div class="form-group">
+        <label for="authToken">
+          Auth Token
+          <span class="label-hint">Must match the token in your server config</span>
+        </label>
+        <input type="password" id="authToken" placeholder="Enter your auth token">
+      </div>
+    </div>
+
+    <!-- AI Settings -->
+    <div class="section">
+      <h2 class="section-title">🤖 AI Summary</h2>
+      
+      <div class="form-group toggle-group">
+        <label for="aiEnabled">Enable AI Summary</label>
+        <label class="toggle">
+          <input type="checkbox" id="aiEnabled">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div id="aiSettings" class="ai-settings">
+        <div class="form-group">
+          <label for="aiProvider">AI Provider</label>
+          <select id="aiProvider">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="aiApiKey">
+            API Key
+            <span class="label-hint">Your AI provider API key</span>
+          </label>
+          <input type="password" id="aiApiKey" placeholder="Enter your API key">
+        </div>
+
+        <div class="form-group">
+          <label for="aiModel">Model</label>
+          <select id="aiModel">
+            <option value="gpt-4">GPT-4</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <option value="claude-3-opus">Claude 3 Opus</option>
+            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button id="saveBtn" class="btn btn-primary">💾 Save Settings</button>
+      <button id="testBtn" class="btn btn-secondary">🔍 Test Connection</button>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

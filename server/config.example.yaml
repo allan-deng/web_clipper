@@ -1,0 +1,29 @@
+# Obsidian Web Clipper Server Configuration
+# Copy this file to config.yaml and modify as needed
+
+server:
+  # Port to listen on
+  port: 18080
+  # Maximum request body size (supports MB, KB suffixes)
+  maxBodySize: "100MB"
+
+auth:
+  # Bearer token for API authentication
+  # Generate a secure random string for production use
+  token: "your-secret-token-here"
+
+vault:
+  # Absolute path to your Obsidian vault root directory
+  # Examples:
+  #   Windows: "C:/Users/YourName/Documents/ObsidianVault"
+  #   macOS: "/Users/YourName/Documents/ObsidianVault"
+  #   Linux: "/home/yourname/ObsidianVault"
+  path: "/path/to/your/obsidian/vault"
+  
+  # Subdirectory within the vault for web clips
+  # Clips will be saved to: {vault.path}/{vault.subdir}/{YYYY-MM-DD}/{ArticleTitle}/
+  subdir: "Inbox/WebClips"
+
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"

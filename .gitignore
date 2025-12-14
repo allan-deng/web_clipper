@@ -1,0 +1,54 @@
+# =========================
+# Obsidian Web Clipper
+# =========================
+
+# Go backend
+server/clipper-server
+server/clipper-server-*
+server/*.exe
+server/*.test
+server/*.out
+server/config.yaml
+server/vendor/
+
+# Node/JS (extension libs are committed, but general patterns)
+node_modules/
+*.log
+npm-debug.log*
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+*.local
+config.yaml
+*.pem
+*.key
+
+# Build artifacts
+dist/
+build/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test coverage
+coverage/
+*.cover
+*.out
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

@@ -1,0 +1,35 @@
+1. 核心架构哲学：桥接模式 (Bridge Pattern)
+我们不把这个项目看作单纯的“浏览器插件”，而是一个 C/S (Client-Server) 系统。
+浏览器端 (Client)： 被视为“不可信且受限”的沙箱环境。它严禁尝试直接操作文件系统。它的唯一职责是：数据采集、清洗、渲染 UI。
+本地 Go 服务 (Server)： 是系统的“核心引擎”。所有涉及磁盘 IO、文件写入、目录创建的操作，强制委托给 Go 服务执行。
+
+- "禁止: 浏览器插件直接尝试写入本地文件系统 (Downloads API 除外，本项目禁用 Downloads API)。"
+- "强制: 所有文件写入操作必须通过 Go Server 完成。"
+- "强制: 图片必须在前端转换为 Base64 或 Blob 传输，禁止后端直接下载 (规避防盗链)。"
+- "强制: 核心业务逻辑(清洗、AI总结)优先在插件端完成，后端主要负责 I/O 和 持久化。"
+
+2. 数据安全与隐私原则
+反爬策略优先： 所有的图片下载、网页内容抓取，必须在浏览器端完成（利用当前 Session 的 Cookie 和 Referer）。后端严禁直接通过 URL 下载资源，以避免防盗链（403 Forbidden）问题。
+访问控制： 尽管是 Localhost 服务，但为了防止恶意网页扫描本地端口写入垃圾文件，API 调用必须携带简单的 Auth Token 进行鉴权。
+
+3. 技术栈选型 (Tech Stack)
+Frontend (轻量化): 坚持使用原生 JavaScript (ES6+)，配合 Manifest V3。不引入 React/Vue 等构建流程，保持插件轻便、易维护。
+核心依赖: Readability (清洗), Turndown (转MD), mark.js (高亮).
+Backend (高性能): 使用 Golang (Gin 或标准库)。利用 Go 的并发优势处理多图片写入。
+
+4. 工程标准 (Engineering Standards)
+原子性写入 (Atomicity): 这是一个“事务性”操作。只有当 Markdown 文本 和 所有引用的图片都成功写入磁盘后，才向前端返回 200 OK。如果中途失败，应尝试清理已写入的垃圾文件。
+路径安全: 所有输入的文件名必须经过 Sanitization（清洗），严防 ../../ 路径穿越攻击。
+
+    golang:
+      - "必须处理所有 error，禁止简单的 `_` 忽略。"
+      - "文件路径操作必须使用 `filepath` 包以兼容 Windows/macOS/Linux。"
+      - "API 响应必须统一封装结构: { code, msg, data }。"
+      - "必须对输入的文件名进行 Sanitize (去除非法字符)，防止路径穿越攻击。"
+    javascript:
+      - "使用 async/await 处理异步操作。"
+      - "DOM 操作必须做空值检查 (Null Check)，防止页面结构变化导致 Crash。"
+
+5. 数据一致性 (Data Integrity)
+    - "原子性要求: 只有当 Markdown 和图片都写入成功，才返回成功状态。"
+    - "幂等性: 重复保存同一网页，应通过 Hash 或 版本号处理，避免文件覆盖或生成重复内容。"
