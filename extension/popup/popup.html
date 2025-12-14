@@ -23,11 +23,18 @@
         <div class="page-url" id="page-url"></div>
       </div>
 
-      <!-- Save Button -->
-      <button id="save-btn" class="btn btn-primary" disabled>
-        <span class="btn-icon">📥</span>
-        <span class="btn-text">Save to Obsidian</span>
-      </button>
+      <!-- Action Buttons -->
+      <div class="btn-group">
+        <button id="save-btn" class="btn btn-primary" disabled>
+          <span class="btn-icon">📥</span>
+          <span class="btn-text">Save to Obsidian</span>
+        </button>
+        
+        <button id="copy-btn" class="btn btn-secondary" disabled>
+          <span class="btn-icon">📋</span>
+          <span class="btn-text">Copy to clipboard</span>
+        </button>
+      </div>
 
       <!-- Progress Indicator -->
       <div id="progress" class="progress hidden">

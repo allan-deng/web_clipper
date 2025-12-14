@@ -44,6 +44,9 @@ if (window.__obsidianWebClipperLoaded) {
       case 'START_CLIP':
         return await handleStartClip();
       
+      case 'COPY_TO_CLIPBOARD':
+        return await handleCopyToClipboard();
+      
       case 'GET_PAGE_INFO':
         return getPageInfo();
       
@@ -84,6 +87,200 @@ if (window.__obsidianWebClipperLoaded) {
         error: error.message
       };
     }
+  }
+
+  /**
+   * Handle copy to clipboard request
+   * Extracts content, converts to Markdown with frontmatter, and returns it
+   * (Clipboard write is done in popup context where it has focus)
+   */
+  async function handleCopyToClipboard() {
+    try {
+      console.log('Starting content extraction for clipboard...');
+      
+      // Extract content (reusing existing extraction logic)
+      const extractedContent = await extractContentForClipboard();
+      
+      if (!extractedContent || !extractedContent.markdown) {
+        return {
+          success: false,
+          error: '此页面没有可提取的文章内容',
+          errorType: 'NO_CONTENT'
+        };
+      }
+      
+      // Generate frontmatter
+      const frontmatter = generateClipboardFrontmatter(extractedContent.metadata);
+      
+      // Generate highlights section if there are any
+      const highlightsSection = generateHighlightsSection(extractedContent.highlights);
+      
+      // Assemble full markdown (frontmatter + highlights + content)
+      let fullMarkdown = frontmatter + '\n';
+      
+      if (highlightsSection) {
+        fullMarkdown += highlightsSection + '\n';
+      }
+      
+      fullMarkdown += '## 正文\n\n' + extractedContent.markdown;
+      
+      console.log(`Content extracted successfully with ${extractedContent.highlights?.length || 0} highlights`);
+      
+      // Return the markdown content - clipboard write will happen in popup
+      return { 
+        success: true, 
+        markdown: fullMarkdown 
+      };
+      
+    } catch (error) {
+      console.error('Content extraction failed:', error);
+      return {
+        success: false,
+        error: error.message || '内容提取失败，请重试',
+        errorType: 'EXTRACTION_FAILED'
+      };
+    }
+  }
+
+  /**
+   * Extract content specifically for clipboard (without image processing)
+   * This is a lighter version that doesn't download images
+   */
+  async function extractContentForClipboard() {
+    console.log('Extracting content for clipboard...');
+
+    // Get basic metadata
+    const metadata = {
+      title: extractTitle(),
+      url: window.location.href,
+      domain: window.location.hostname,
+      clippedAt: new Date().toISOString()
+    };
+
+    // Clone document for Readability processing
+    const documentClone = document.cloneNode(true);
+    
+    // Remove scripts and styles from clone
+    documentClone.querySelectorAll('script, style, noscript').forEach(el => el.remove());
+    
+    // Extract article content using Readability
+    let articleHtml = '';
+    
+    if (typeof Readability !== 'undefined') {
+      try {
+        const reader = new Readability(documentClone, {
+          charThreshold: 100
+        });
+        const article = reader.parse();
+        
+        if (article) {
+          metadata.title = article.title || metadata.title;
+          articleHtml = article.content || '';
+          console.log('Readability extraction successful for clipboard');
+        }
+      } catch (error) {
+        console.warn('Readability extraction failed:', error);
+      }
+    }
+    
+    // Fallback if Readability fails
+    if (!articleHtml) {
+      console.log('Using fallback extraction for clipboard...');
+      articleHtml = extractFallback();
+    }
+    
+    // Check if we have content
+    if (!articleHtml || articleHtml.trim().length < 50) {
+      return null;
+    }
+
+    // Convert HTML to Markdown (keep original image URLs, no base64 conversion)
+    let markdown = '';
+    
+    if (typeof TurndownService !== 'undefined') {
+      try {
+        const turndownService = new TurndownService({
+          headingStyle: 'atx',
+          codeBlockStyle: 'fenced',
+          bulletListMarker: '-'
+        });
+        
+        // Add custom rules
+        addTurndownRules(turndownService);
+        
+        markdown = turndownService.turndown(articleHtml);
+        markdown = cleanupMarkdown(markdown);
+      } catch (error) {
+        console.warn('Turndown conversion failed:', error);
+        markdown = stripHtml(articleHtml);
+      }
+    } else {
+      console.warn('TurndownService not available');
+      markdown = stripHtml(articleHtml);
+    }
+
+    return {
+      metadata,
+      markdown,
+      highlights: collectHighlights()
+    };
+  }
+
+  /**
+   * Generate YAML frontmatter for clipboard copy
+   */
+  function generateClipboardFrontmatter(metadata) {
+    const lines = ['---'];
+    
+    lines.push(`title: "${escapeYamlString(metadata.title)}"`);
+    lines.push(`source: "${escapeYamlString(metadata.url)}"`);
+    lines.push(`clipped: "${metadata.clippedAt}"`);
+    
+    lines.push('---');
+    lines.push('');
+    
+    return lines.join('\n');
+  }
+
+  /**
+   * Escape special characters in YAML string values
+   */
+  function escapeYamlString(str) {
+    if (!str) return '';
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n');
+  }
+
+  /**
+   * Generate highlights/notes section for clipboard copy
+   * @param {Array} highlightsList - Array of highlight objects
+   * @returns {string} Markdown section for highlights
+   */
+  function generateHighlightsSection(highlightsList) {
+    if (!highlightsList || highlightsList.length === 0) {
+      return '';
+    }
+    
+    const lines = ['## 我的笔记', ''];
+    
+    // Sort highlights by position
+    const sortedHighlights = [...highlightsList].sort((a, b) => a.position - b.position);
+    
+    for (const highlight of sortedHighlights) {
+      lines.push(`> **高亮**: ${highlight.text}`);
+      if (highlight.note) {
+        lines.push(`> `);
+        lines.push(`> 💬 批注: ${highlight.note}`);
+      }
+      lines.push('');
+    }
+    
+    lines.push('---');
+    lines.push('');
+    
+    return lines.join('\n');
   }
 
   /**

@@ -11,6 +11,7 @@ const elements = {
   pageTitle: document.getElementById('page-title'),
   pageUrl: document.getElementById('page-url'),
   saveBtn: document.getElementById('save-btn'),
+  copyBtn: document.getElementById('copy-btn'),
   progress: document.getElementById('progress'),
   progressFill: document.getElementById('progress-fill'),
   progressText: document.getElementById('progress-text'),
@@ -23,6 +24,7 @@ const elements = {
 
 // State
 let isClipping = false;
+let isCopying = false;
 
 /**
  * Initialize the popup
@@ -49,9 +51,10 @@ async function loadPageInfo() {
       elements.pageTitle.textContent = tab.title || 'Untitled Page';
       elements.pageUrl.textContent = tab.url || '';
       
-      // Enable save button if we have a valid URL
+      // Enable buttons if we have a valid URL
       if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
         elements.saveBtn.disabled = false;
+        elements.copyBtn.disabled = false;
       } else {
         showStatusMessage('Cannot clip this page', 'warning');
       }
@@ -88,6 +91,9 @@ async function checkServerHealth() {
 function setupEventListeners() {
   // Save button click
   elements.saveBtn.addEventListener('click', handleSaveClick);
+  
+  // Copy button click
+  elements.copyBtn.addEventListener('click', handleCopyClick);
   
   // Settings link click
   elements.settingsLink.addEventListener('click', (e) => {
@@ -211,6 +217,74 @@ function showResult(success, message, path = '') {
   // Re-enable save button after error
   if (!success) {
     elements.saveBtn.disabled = false;
+  }
+}
+
+/**
+ * Handle copy button click
+ */
+async function handleCopyClick() {
+  if (isCopying) return;
+  
+  isCopying = true;
+  const originalText = elements.copyBtn.querySelector('.btn-text').textContent;
+  
+  // Disable button and show processing state (FR-009)
+  elements.copyBtn.disabled = true;
+  elements.copyBtn.classList.add('btn-processing');
+  elements.copyBtn.querySelector('.btn-text').textContent = '处理中...';
+  
+  try {
+    // Get active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab?.id) {
+      throw new Error('No active tab found');
+    }
+    
+    // Send message to content script to extract content
+    const response = await chrome.tabs.sendMessage(tab.id, { type: 'COPY_TO_CLIPBOARD' });
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to extract content');
+    }
+    
+    // Write to clipboard in popup context (has focus)
+    try {
+      await navigator.clipboard.writeText(response.markdown);
+    } catch (clipboardError) {
+      console.error('Clipboard write failed:', clipboardError);
+      throw new Error('无法访问剪贴板，请检查浏览器权限设置');
+    }
+    
+    // Show success state (FR-006)
+    elements.copyBtn.classList.remove('btn-processing');
+    elements.copyBtn.classList.add('btn-success');
+    elements.copyBtn.querySelector('.btn-text').textContent = '已复制!';
+    
+    // Reset button after 2 seconds (FR-010)
+    setTimeout(() => {
+      elements.copyBtn.classList.remove('btn-success');
+      elements.copyBtn.querySelector('.btn-text').textContent = originalText;
+      elements.copyBtn.disabled = false;
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Copy failed:', error);
+    
+    // Show error state (FR-007)
+    elements.copyBtn.classList.remove('btn-processing');
+    elements.copyBtn.classList.add('btn-error');
+    elements.copyBtn.querySelector('.btn-text').textContent = error.message || '复制失败';
+    
+    // Reset button after 3 seconds
+    setTimeout(() => {
+      elements.copyBtn.classList.remove('btn-error');
+      elements.copyBtn.querySelector('.btn-text').textContent = originalText;
+      elements.copyBtn.disabled = false;
+    }, 3000);
+  } finally {
+    isCopying = false;
   }
 }
 
