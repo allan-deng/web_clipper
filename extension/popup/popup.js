@@ -290,3 +290,89 @@ async function handleCopyClick() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// ===== T022-T023: OpenRouter API Support =====
+
+/**
+ * T022: Call OpenRouter API for AI summary
+ * @param {string} content - The content to summarize
+ * @param {string} model - The model name (e.g., "openai/gpt-4o")
+ * @param {string} apiKey - The OpenRouter API key
+ * @param {string} prompt - The summary prompt
+ * @returns {Promise<string>} The generated summary
+ */
+async function callOpenRouterAPI(content, model, apiKey, prompt) {
+  const fullPrompt = prompt.replace('{content}', content);
+  
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': chrome.runtime.getURL(''),
+      'X-Title': 'Obsidian Web Clipper'
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [{ role: 'user', content: fullPrompt }]
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
+    throw new Error(`OpenRouter API error: ${errorMsg}`);
+  }
+  
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+/**
+ * T023: Generate AI summary based on provider settings
+ * @param {string} content - The content to summarize
+ * @returns {Promise<string>} The generated summary
+ */
+async function generateAISummary(content) {
+  // Load settings
+  const config = await chrome.storage.local.get([
+    'aiEnabled',
+    'aiProvider',
+    'aiApiKey',
+    'aiModel',
+    'openrouterApiKey',
+    'openrouterModel',
+    'customSummaryPrompt'
+  ]);
+  
+  if (!config.aiEnabled) {
+    return null;
+  }
+  
+  // Get prompt (use default if not set)
+  const DEFAULT_PROMPT = `请为以下网页内容生成一个简洁的摘要：
+
+要求：
+1. 摘要长度在 100-200 字之间
+2. 突出文章的核心观点
+3. 使用与原文相同的语言
+
+内容：
+{content}`;
+  
+  const prompt = config.customSummaryPrompt || DEFAULT_PROMPT;
+  
+  if (config.aiProvider === 'openrouter') {
+    // Use OpenRouter
+    if (!config.openrouterApiKey || !config.openrouterModel) {
+      throw new Error('OpenRouter API key and model are required');
+    }
+    return await callOpenRouterAPI(content, config.openrouterModel, config.openrouterApiKey, prompt);
+  } else if (config.aiProvider === 'openai') {
+    // Use OpenAI (existing implementation would go here)
+    // For now, placeholder
+    throw new Error('OpenAI provider not yet implemented in this version');
+  } else {
+    throw new Error(`Unknown AI provider: ${config.aiProvider}`);
+  }
+}

@@ -67,7 +67,11 @@
 .owc-selection-menu {
   position: fixed;
   z-index: 2147483647;
-  background: var(--owc-ui-bg);
+  /* T004: Semi-transparent background with rgba */
+  background: rgba(30, 30, 30, 0.85);
+  /* T005: Backdrop blur for glass-morphism effect */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border: 1px solid var(--owc-ui-border);
   border-radius: 8px;
   box-shadow: 0 4px 12px var(--owc-ui-shadow);

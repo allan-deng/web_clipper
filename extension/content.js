@@ -676,7 +676,8 @@ if (window.__obsidianWebClipperLoaded) {
    * Initialize highlight mode
    */
   function initHighlightMode() {
-    // Inject highlight styles
+    // Inject highlight styles (minimal - main styles come from CSS file)
+    // T006: Removed inline background style to use CSS file transparency
     const style = document.createElement('style');
     style.textContent = `
       .owc-highlight {
@@ -690,16 +691,6 @@ if (window.__obsidianWebClipperLoaded) {
         font-size: 10px;
         position: relative;
         top: -5px;
-      }
-      .owc-selection-menu {
-        position: fixed;
-        z-index: 2147483647;
-        background: #1e1e1e;
-        border: 1px solid #404040;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        padding: 8px;
-        display: none;
       }
       .owc-menu-btn {
         background: transparent;
@@ -748,11 +739,22 @@ if (window.__obsidianWebClipperLoaded) {
         addHighlight(text, null);
         menu.style.display = 'none';
       } else if (action === 'note' && text) {
-        const note = prompt('Add a note:');
-        if (note !== null) {
-          addHighlight(text, note);
+        // T010: Use custom editor instead of browser prompt
+        const selection = window.getSelection();
+        let targetPosition = null;
+        let range = null;
+        
+        if (selection.rangeCount > 0) {
+          range = selection.getRangeAt(0).cloneRange(); // Clone the range to preserve it
+          const rect = range.getBoundingClientRect();
+          targetPosition = {
+            left: rect.left,
+            top: rect.bottom + 8
+          };
         }
+        
         menu.style.display = 'none';
+        showNoteEditorForNewHighlight(text, targetPosition, range);
       }
     });
   }
@@ -1240,6 +1242,189 @@ if (window.__obsidianWebClipperLoaded) {
 
     // Remove from highlights array
     highlights = highlights.filter(h => h.id !== id);
+  }
+
+  // ===== T007-T013: Note Editor for New Highlights =====
+
+  // State for pending new highlight
+  let pendingHighlightText = null;
+  let pendingHighlightRange = null; // Store the selection range
+
+  /**
+   * T007: Show note editor for creating a new highlight with note
+   * @param {string} text - The selected text to highlight
+   * @param {{left: number, top: number}} position - Position to show editor
+   * @param {Range} range - The selection range to preserve
+   */
+  function showNoteEditorForNewHighlight(text, position, range) {
+    if (!text) return;
+    
+    // Store pending text and range
+    pendingHighlightText = text;
+    pendingHighlightRange = range;
+    
+    // Create editor element for new highlight (T008: no delete button)
+    const editor = createNewHighlightEditorElement();
+    
+    // Position the editor
+    const editorWidth = 300;
+    const editorHeight = 200;
+    let left = position?.left || 100;
+    let top = position?.top || 100;
+    
+    // Boundary checks
+    if (left + editorWidth > window.innerWidth) {
+      left = window.innerWidth - editorWidth - 10;
+    }
+    if (left < 10) left = 10;
+    if (top + editorHeight > window.innerHeight) {
+      top = window.innerHeight - editorHeight - 10;
+    }
+    if (top < 10) top = 10;
+    
+    editor.style.left = `${left}px`;
+    editor.style.top = `${top}px`;
+    editor.style.display = 'block';
+    
+    // Focus textarea
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus();
+      }, 50);
+    }
+    
+    // Bind events
+    bindNewHighlightEditorEvents(editor);
+  }
+
+  /**
+   * T008: Create editor element for new highlight (without delete button)
+   * @returns {Element} The configured editor element
+   */
+  function createNewHighlightEditorElement() {
+    const editor = ensureEditorContainer();
+    editor.innerHTML = `
+      <div class="owc-note-editor-header">
+        <span class="owc-note-editor-title">添加笔记</span>
+      </div>
+      <textarea class="owc-note-editor-textarea" placeholder="输入笔记内容..."></textarea>
+      <div class="owc-note-editor-actions">
+        <div class="owc-note-editor-actions-left"></div>
+        <div class="owc-note-editor-actions-right">
+          <button class="owc-editor-btn cancel" data-action="cancel">取消</button>
+          <button class="owc-editor-btn save" data-action="save">保存</button>
+        </div>
+      </div>
+      <div class="owc-editor-hint">Enter 保存 · Escape 取消</div>
+    `;
+    return editor;
+  }
+
+  /**
+   * T011-T013: Bind events for new highlight editor
+   * @param {Element} editor - The editor element
+   */
+  function bindNewHighlightEditorEvents(editor) {
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    const saveBtn = editor.querySelector('[data-action="save"]');
+    const cancelBtn = editor.querySelector('[data-action="cancel"]');
+
+    // T011: Save button - create highlight with note
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        const note = textarea ? textarea.value.trim() : '';
+        if (pendingHighlightText && pendingHighlightRange) {
+          // T009: Create highlight with note using stored range
+          saveNewHighlightWithNote(pendingHighlightText, note, pendingHighlightRange);
+        }
+        hideNoteEditor();
+        pendingHighlightText = null;
+        pendingHighlightRange = null;
+      };
+    }
+
+    // T012: Cancel button - close without creating highlight
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        hideNoteEditor();
+        pendingHighlightText = null;
+        pendingHighlightRange = null;
+      };
+    }
+
+    // T013: Keyboard shortcuts - Enter to save, Escape to cancel
+    if (textarea) {
+      textarea.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const note = textarea.value.trim();
+          if (pendingHighlightText && pendingHighlightRange) {
+            saveNewHighlightWithNote(pendingHighlightText, note, pendingHighlightRange);
+          }
+          hideNoteEditor();
+          pendingHighlightText = null;
+          pendingHighlightRange = null;
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          hideNoteEditor();
+          pendingHighlightText = null;
+          pendingHighlightRange = null;
+        }
+      };
+    }
+
+    // Click outside to cancel
+    setTimeout(() => {
+      document.addEventListener('click', handleNewHighlightOutsideClick);
+    }, 100);
+  }
+
+  /**
+   * Handle click outside new highlight editor
+   */
+  function handleNewHighlightOutsideClick(e) {
+    if (editorElement && !editorElement.contains(e.target) && 
+        !e.target.closest('.owc-selection-menu')) {
+      hideNoteEditor();
+      pendingHighlightText = null;
+      pendingHighlightRange = null;
+      document.removeEventListener('click', handleNewHighlightOutsideClick);
+    }
+  }
+
+  /**
+   * T009: Create a new highlight with the given note using stored range
+   * @param {string} text - The text to highlight
+   * @param {string} note - The note content
+   * @param {Range} range - The stored selection range
+   */
+  function saveNewHighlightWithNote(text, note, range) {
+    if (!range) return;
+    
+    const wrapper = document.createElement('span');
+    wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
+    wrapper.dataset.highlightId = ++highlightIdCounter;
+    
+    try {
+      range.surroundContents(wrapper);
+    } catch (e) {
+      // Handle complex selections that cross element boundaries
+      const contents = range.extractContents();
+      wrapper.appendChild(contents);
+      range.insertNode(wrapper);
+    }
+    
+    highlights.push({
+      id: highlightIdCounter,
+      text,
+      note: note || null,
+      color: '#ffeb3b',
+      position: highlights.length
+    });
+    
+    // Initialize interaction events for the new highlight
+    initHighlightInteractions(wrapper);
   }
 
   console.log('Obsidian Web Clipper: Content script loaded');

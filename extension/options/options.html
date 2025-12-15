@@ -223,6 +223,47 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    /* T024-T026: Custom prompt textarea styles */
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      line-height: 1.5;
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .prompt-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .char-count {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .char-count.error {
+      color: var(--error);
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -266,11 +307,13 @@
       </div>
 
       <div id="aiSettings" class="ai-settings">
+        <!-- T014: AI Provider dropdown with OpenRouter option -->
         <div class="form-group">
           <label for="aiProvider">AI Provider</label>
           <select id="aiProvider">
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
+            <option value="openrouter">OpenRouter</option>
           </select>
         </div>
 
@@ -282,7 +325,8 @@
           <input type="password" id="aiApiKey" placeholder="Enter your API key">
         </div>
 
-        <div class="form-group">
+        <!-- Standard model dropdown (for OpenAI/Anthropic) -->
+        <div class="form-group" id="openaiModelGroup">
           <label for="aiModel">Model</label>
           <select id="aiModel">
             <option value="gpt-4">GPT-4</option>
@@ -291,6 +335,38 @@
             <option value="claude-3-opus">Claude 3 Opus</option>
             <option value="claude-3-sonnet">Claude 3 Sonnet</option>
           </select>
+        </div>
+
+        <!-- T015-T016: OpenRouter specific fields (hidden by default) -->
+        <div id="openrouterGroup" class="hidden">
+          <div class="form-group">
+            <label for="openrouterApiKey">
+              OpenRouter API Key
+              <span class="label-hint">Your OpenRouter API key</span>
+            </label>
+            <input type="password" id="openrouterApiKey" placeholder="sk-or-...">
+          </div>
+          
+          <div class="form-group">
+            <label for="openrouterModel">
+              Model Name
+              <span class="label-hint">Format: provider/model-name (e.g., openai/gpt-4o)</span>
+            </label>
+            <input type="text" id="openrouterModel" placeholder="openai/gpt-4o">
+          </div>
+        </div>
+
+        <!-- T024-T025: Custom AI Summary Prompt section -->
+        <div class="form-group">
+          <label for="customPrompt">
+            AI Summary Prompt
+            <span class="label-hint">Customize how AI generates summaries</span>
+          </label>
+          <textarea id="customPrompt" rows="6" placeholder="Enter your custom prompt..."></textarea>
+          <div class="prompt-footer">
+            <span id="promptCharCount" class="char-count">0 / 2000</span>
+            <button type="button" id="resetPromptBtn" class="btn btn-small btn-secondary">恢复默认</button>
+          </div>
         </div>
       </div>
     </div>
