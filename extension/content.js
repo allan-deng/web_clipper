@@ -122,6 +122,7 @@ if (window.__obsidianWebClipperLoaded) {
       const highlightsSection = generateHighlightsSection(extractedContent.highlights);
       
       // Assemble full markdown (frontmatter + highlights + content)
+      // Note: AI summary is added by popup.js if enabled
       let fullMarkdown = frontmatter + '\n';
       
       if (highlightsSection) {
@@ -761,36 +762,137 @@ if (window.__obsidianWebClipperLoaded) {
 
   /**
    * Add a highlight
+   * Handles both simple and cross-element selections
    */
   function addHighlight(text, note) {
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const wrapper = document.createElement('span');
-      wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
-      wrapper.dataset.highlightId = ++highlightIdCounter;
+      const highlightId = ++highlightIdCounter;
       
-      try {
-        range.surroundContents(wrapper);
-      } catch (e) {
-        const contents = range.extractContents();
-        wrapper.appendChild(contents);
-        range.insertNode(wrapper);
+      // Check if selection crosses multiple elements
+      if (range.startContainer === range.endContainer && 
+          range.startContainer.nodeType === Node.TEXT_NODE) {
+        // Simple case: selection within a single text node
+        const wrapper = document.createElement('span');
+        wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
+        wrapper.dataset.highlightId = highlightId;
+        
+        try {
+          range.surroundContents(wrapper);
+          initHighlightInteractions(wrapper);
+        } catch (e) {
+          console.warn('Simple highlight failed, trying complex method:', e);
+          highlightRangeComplex(range, highlightId, note);
+        }
+      } else {
+        // Complex case: selection crosses multiple elements
+        highlightRangeComplex(range, highlightId, note);
       }
       
       highlights.push({
-        id: highlightIdCounter,
+        id: highlightId,
         text,
         note,
         color: '#ffeb3b',
         position: highlights.length
       });
       
-      // Initialize interaction events for the new highlight
-      initHighlightInteractions(wrapper);
-      
       selection.removeAllRanges();
     }
+  }
+
+  /**
+   * Handle complex selections that cross multiple elements
+   * Creates highlight spans for each text node in the selection
+   */
+  function highlightRangeComplex(range, highlightId, note) {
+    // Get all text nodes within the range
+    const textNodes = getTextNodesInRange(range);
+    
+    if (textNodes.length === 0) return;
+    
+    textNodes.forEach((textNode, index) => {
+      const wrapper = document.createElement('span');
+      wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
+      wrapper.dataset.highlightId = highlightId;
+      // Only show note indicator on the last segment
+      if (note && index < textNodes.length - 1) {
+        wrapper.classList.remove('has-note');
+      }
+      
+      // Determine which part of this text node to highlight
+      let startOffset = 0;
+      let endOffset = textNode.length;
+      
+      if (textNode === range.startContainer) {
+        startOffset = range.startOffset;
+      }
+      if (textNode === range.endContainer) {
+        endOffset = range.endOffset;
+      }
+      
+      // Only wrap if there's actual content to highlight
+      if (startOffset < endOffset) {
+        const nodeRange = document.createRange();
+        nodeRange.setStart(textNode, startOffset);
+        nodeRange.setEnd(textNode, endOffset);
+        
+        try {
+          nodeRange.surroundContents(wrapper);
+          initHighlightInteractions(wrapper);
+        } catch (e) {
+          console.warn('Failed to wrap text node:', e);
+        }
+      }
+    });
+  }
+
+  /**
+   * Get all text nodes within a range
+   */
+  function getTextNodesInRange(range) {
+    const textNodes = [];
+    const startContainer = range.startContainer;
+    const endContainer = range.endContainer;
+    
+    // If start and end are the same text node
+    if (startContainer === endContainer && startContainer.nodeType === Node.TEXT_NODE) {
+      return [startContainer];
+    }
+    
+    // Find common ancestor
+    const commonAncestor = range.commonAncestorContainer;
+    
+    // Tree walker to find all text nodes
+    const walker = document.createTreeWalker(
+      commonAncestor,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function(node) {
+          // Check if node is within range
+          const nodeRange = document.createRange();
+          nodeRange.selectNodeContents(node);
+          
+          // Check if this text node intersects with our selection range
+          if (range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 &&
+              range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0) {
+            // Only include non-empty text nodes
+            if (node.textContent.trim().length > 0) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+          }
+          return NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+    
+    let node;
+    while (node = walker.nextNode()) {
+      textNodes.push(node);
+    }
+    
+    return textNodes;
   }
 
   /**
@@ -1402,29 +1504,35 @@ if (window.__obsidianWebClipperLoaded) {
   function saveNewHighlightWithNote(text, note, range) {
     if (!range) return;
     
-    const wrapper = document.createElement('span');
-    wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
-    wrapper.dataset.highlightId = ++highlightIdCounter;
+    const highlightId = ++highlightIdCounter;
     
-    try {
-      range.surroundContents(wrapper);
-    } catch (e) {
-      // Handle complex selections that cross element boundaries
-      const contents = range.extractContents();
-      wrapper.appendChild(contents);
-      range.insertNode(wrapper);
+    // Check if selection crosses multiple elements
+    if (range.startContainer === range.endContainer && 
+        range.startContainer.nodeType === Node.TEXT_NODE) {
+      // Simple case: selection within a single text node
+      const wrapper = document.createElement('span');
+      wrapper.className = 'owc-highlight' + (note ? ' has-note' : '');
+      wrapper.dataset.highlightId = highlightId;
+      
+      try {
+        range.surroundContents(wrapper);
+        initHighlightInteractions(wrapper);
+      } catch (e) {
+        console.warn('Simple highlight failed, trying complex method:', e);
+        highlightRangeComplex(range, highlightId, note);
+      }
+    } else {
+      // Complex case: selection crosses multiple elements
+      highlightRangeComplex(range, highlightId, note);
     }
     
     highlights.push({
-      id: highlightIdCounter,
+      id: highlightId,
       text,
       note: note || null,
       color: '#ffeb3b',
       position: highlights.length
     });
-    
-    // Initialize interaction events for the new highlight
-    initHighlightInteractions(wrapper);
   }
 
   console.log('Obsidian Web Clipper: Content script loaded');
