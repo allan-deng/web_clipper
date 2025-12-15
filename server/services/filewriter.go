@@ -205,30 +205,14 @@ func (w *FileWriter) generateMarkdown(req *models.SaveRequest) string {
 
 	// AI Summary section (if available)
 	if req.Content.AISummary != nil && req.Content.AISummary.Status == "SUCCESS" {
-		sb.WriteString("## AI 摘要\n\n")
-		
-		// Key points
-		if len(req.Content.AISummary.KeyPoints) > 0 {
-			sb.WriteString("### 核心观点\n\n")
-			for _, point := range req.Content.AISummary.KeyPoints {
-				sb.WriteString(fmt.Sprintf("- %s\n", point))
-			}
-			sb.WriteString("\n")
-		}
+		sb.WriteString("## 摘要\n\n")
 
-		// Mermaid diagram
-		if req.Content.AISummary.MermaidDiagram != "" {
-			sb.WriteString("### 逻辑关系图\n\n")
-			sb.WriteString("```mermaid\n")
-			sb.WriteString(req.Content.AISummary.MermaidDiagram)
-			sb.WriteString("\n```\n\n")
-		}
+		// If we have raw text (from direct AI response), use it directly
+		if req.Content.AISummary.RawText != "" {
+			sb.WriteString(req.Content.AISummary.RawText)
+			sb.WriteString("\n\n")
+		} 
 
-		sb.WriteString("---\n\n")
-	} else if req.Content.AISummary != nil && req.Content.AISummary.Status == "PENDING" {
-		// Placeholder for pending AI summary
-		sb.WriteString("## AI 摘要\n\n")
-		sb.WriteString("<!-- AI_PENDING: 摘要待生成 -->\n\n")
 		sb.WriteString("---\n\n")
 	}
 

@@ -29,7 +29,8 @@ type AISummary struct {
 	KeyPoints      []string   `json:"keyPoints"`
 	Evidence       []Evidence `json:"evidence"`
 	MermaidDiagram string     `json:"mermaidDiagram"`
-	Status         string     `json:"status"` // SUCCESS, PENDING, FAILED
+	Status         string     `json:"status"`  // SUCCESS, PENDING, FAILED
+	RawText        string     `json:"rawText"` // Raw AI summary text (fallback if keyPoints is empty)
 }
 
 // Evidence represents a supporting quote for a key point

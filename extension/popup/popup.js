@@ -132,13 +132,52 @@ async function handleSaveClick() {
       throw new Error(clipResponse.error || 'Failed to extract content');
     }
     
+    // Get clip data for modification
+    let clipData = clipResponse.data;
+    
+    // Generate AI Summary if enabled
+    try {
+      const config = await chrome.storage.local.get(['aiEnabled']);
+      console.log('Save to Obsidian - AI Enabled:', config.aiEnabled);
+      
+      if (config.aiEnabled) {
+        updateProgress(40, 'Generating AI summary...');
+        
+        // Extract plain text for AI from markdown content
+        const contentForAI = extractPlainTextForAI(clipData.content.markdown);
+        console.log('Content for AI length:', contentForAI?.length || 0);
+        
+        if (contentForAI && contentForAI.length > 100) {
+          const aiSummaryText = await generateAISummary(contentForAI);
+          
+          if (aiSummaryText) {
+            // Parse AI summary into structured format for backend
+            clipData.content.aiSummary = {
+              evidence: [],
+              mermaidDiagram: '',
+              status: 'SUCCESS',
+              rawText: aiSummaryText  // Store raw text for fallback
+            };
+            
+            // finalMarkdown = insertAISummaryIntoMarkdown(clipData.content.markdown, aiSummary);
+            console.log('AI summary generated for Save to Obsidian');
+          }
+        } else {
+          console.log('Content too short for AI summary');
+        }
+      }
+    } catch (aiError) {
+      console.warn('AI summary generation failed, continuing without it:', aiError);
+      // Continue without AI summary
+    }
+    
     // Update progress
     updateProgress(60, 'Saving to Obsidian...');
     
     // Send clip data to background for saving
     const saveResponse = await chrome.runtime.sendMessage({
       type: 'SAVE_CLIP',
-      data: clipResponse.data
+      data: clipData
     });
     
     if (!saveResponse.success) {
@@ -367,7 +406,7 @@ function insertAISummaryIntoMarkdown(markdown, aiSummary) {
   const frontmatterEnd = markdown.indexOf('---', 4);
   if (frontmatterEnd === -1) {
     // No frontmatter, prepend summary
-    return `## AI 摘要\n\n${aiSummary}\n\n---\n\n${markdown}`;
+    return `## 摘要\n\n${aiSummary}\n\n---\n\n${markdown}`;
   }
   
   // Insert after frontmatter
@@ -375,7 +414,7 @@ function insertAISummaryIntoMarkdown(markdown, aiSummary) {
   const before = markdown.substring(0, afterFrontmatter);
   const after = markdown.substring(afterFrontmatter);
   
-  return `${before}\n\n## AI 摘要\n\n${aiSummary}\n\n---\n${after}`;
+  return `${before}\n\n## 摘要\n\n${aiSummary}\n\n---\n${after}`;
 }
 
 // Initialize when DOM is ready

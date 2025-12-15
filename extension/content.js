@@ -302,10 +302,10 @@ if (window.__obsidianWebClipperLoaded) {
       url: window.location.href,
       domain: window.location.hostname,
       savedAt: new Date().toISOString(),
-      tags: [] // Will be populated by AI in Phase 5
+      tags: extractTags() // Extract tags from meta tags
     };
 
-    console.log('Metadata extracted:', metadata.title);
+    console.log('Metadata extracted:', metadata.title, 'Tags:', metadata.tags);
 
     // Clone document for Readability processing
     const documentClone = document.cloneNode(true);
@@ -385,7 +385,10 @@ if (window.__obsidianWebClipperLoaded) {
       assets: assets.filter(a => a.base64) // Only include successfully downloaded images
     };
 
-    console.log('Clip data ready');
+    console.log('Clip data ready, assets count:', clipData.assets.length);
+    if (clipData.assets.length > 0) {
+      console.log('First asset:', clipData.assets[0].filename, clipData.assets[0].mimeType);
+    }
     return clipData;
   }
 
@@ -416,6 +419,78 @@ if (window.__obsidianWebClipperLoaded) {
     }
     
     return 'Untitled';
+  }
+
+  /**
+   * Extract tags from page meta tags and structured data
+   * Sources: meta keywords, article:tag, og:article:tag, etc.
+   */
+  function extractTags() {
+    const tags = new Set();
+    
+    // Source 1: Meta keywords
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) {
+      const content = metaKeywords.getAttribute('content');
+      if (content) {
+        content.split(/[,，]/).forEach(tag => {
+          const trimmed = tag.trim();
+          if (trimmed && trimmed.length > 0 && trimmed.length < 50) {
+            tags.add(trimmed);
+          }
+        });
+      }
+    }
+    
+    // Source 2: article:tag meta tags (common in blog platforms)
+    document.querySelectorAll('meta[property="article:tag"]').forEach(el => {
+      const content = el.getAttribute('content');
+      if (content && content.length < 50) {
+        tags.add(content.trim());
+      }
+    });
+    
+    // Source 3: og:article:tag (Open Graph)
+    document.querySelectorAll('meta[property="og:article:tag"]').forEach(el => {
+      const content = el.getAttribute('content');
+      if (content && content.length < 50) {
+        tags.add(content.trim());
+      }
+    });
+    
+    // Source 4: news_keywords (used by news sites)
+    const newsKeywords = document.querySelector('meta[name="news_keywords"]');
+    if (newsKeywords) {
+      const content = newsKeywords.getAttribute('content');
+      if (content) {
+        content.split(/[,，]/).forEach(tag => {
+          const trimmed = tag.trim();
+          if (trimmed && trimmed.length > 0 && trimmed.length < 50) {
+            tags.add(trimmed);
+          }
+        });
+      }
+    }
+    
+    // Source 5: Look for common tag elements in page
+    const tagSelectors = [
+      '.tag', '.tags a', '.post-tag', '.article-tag',
+      '[rel="tag"]', '.label', '.category'
+    ];
+    
+    for (const selector of tagSelectors) {
+      document.querySelectorAll(selector).forEach(el => {
+        const text = el.textContent?.trim();
+        if (text && text.length > 0 && text.length < 50 && !text.includes('\n')) {
+          tags.add(text);
+        }
+      });
+      // Limit to prevent too many tags from page elements
+      if (tags.size >= 15) break;
+    }
+    
+    // Convert to array and limit to 10 tags
+    return Array.from(tags).slice(0, 10);
   }
 
   /**
