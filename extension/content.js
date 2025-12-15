@@ -19,6 +19,12 @@ if (window.__obsidianWebClipperLoaded) {
   let highlights = [];
   let highlightIdCounter = 0;
 
+  // UI state for highlight interactions
+  let tooltipElement = null;
+  let editorElement = null;
+  let hideTooltipTimeout = null;
+  let currentEditingHighlightId = null;
+
   // Initialize highlight mode
   initHighlightMode();
 
@@ -778,8 +784,462 @@ if (window.__obsidianWebClipperLoaded) {
         position: highlights.length
       });
       
+      // Initialize interaction events for the new highlight
+      initHighlightInteractions(wrapper);
+      
       selection.removeAllRanges();
     }
+  }
+
+  /**
+   * Ensure tooltip container exists in DOM
+   */
+  function ensureTooltipContainer() {
+    if (!tooltipElement) {
+      tooltipElement = document.createElement('div');
+      tooltipElement.className = 'owc-note-tooltip';
+      tooltipElement.style.display = 'none';
+      document.body.appendChild(tooltipElement);
+    }
+    return tooltipElement;
+  }
+
+  /**
+   * Ensure editor container exists in DOM
+   */
+  function ensureEditorContainer() {
+    if (!editorElement) {
+      editorElement = document.createElement('div');
+      editorElement.className = 'owc-note-editor';
+      editorElement.style.display = 'none';
+      document.body.appendChild(editorElement);
+    }
+    return editorElement;
+  }
+
+  /**
+   * Calculate tooltip/editor position with viewport boundary detection
+   * @param {Element} targetElement - The highlight element to position near
+   * @param {number} width - Width of the popup (default 250 for tooltip, 300 for editor)
+   * @param {number} maxHeight - Max height of the popup
+   * @returns {{left: number, top: number}}
+   */
+  function getTooltipPosition(targetElement, width = 250, maxHeight = 200) {
+    if (!targetElement) {
+      return { left: 0, top: 0 };
+    }
+
+    const rect = targetElement.getBoundingClientRect();
+    const gap = 8; // Gap between element and popup
+
+    let left = rect.left;
+    let top = rect.bottom + gap;
+
+    // Right boundary check - ensure popup doesn't overflow right edge
+    if (left + width > window.innerWidth) {
+      left = window.innerWidth - width - 10;
+    }
+
+    // Left boundary check - ensure popup doesn't overflow left edge
+    if (left < 10) {
+      left = 10;
+    }
+
+    // Bottom boundary check - if not enough space below, show above
+    if (top + maxHeight > window.innerHeight) {
+      top = rect.top - maxHeight - gap;
+      // If still out of view (not enough space above), position at top
+      if (top < 10) {
+        top = 10;
+      }
+    }
+
+    return { left, top };
+  }
+
+  /**
+   * Find highlight data by ID
+   * @param {number|string} highlightId - The highlight ID to find
+   * @returns {Object|null} The highlight object or null if not found
+   */
+  function getHighlightById(highlightId) {
+    const id = parseInt(highlightId, 10);
+    return highlights.find(h => h.id === id) || null;
+  }
+
+  /**
+   * Initialize interaction events for a highlight element
+   * @param {Element} highlightEl - The highlight span element
+   */
+  function initHighlightInteractions(highlightEl) {
+    if (!highlightEl || highlightEl.dataset.interactionsInitialized) {
+      return;
+    }
+
+    const highlightId = highlightEl.dataset.highlightId;
+    if (!highlightId) {
+      return;
+    }
+
+    // Mark as initialized to prevent duplicate bindings
+    highlightEl.dataset.interactionsInitialized = 'true';
+
+    // Mouseenter - show tooltip if note exists
+    highlightEl.addEventListener('mouseenter', () => {
+      const highlight = getHighlightById(highlightId);
+      if (highlight && highlight.note) {
+        showNoteTooltip(highlight, highlightEl);
+      }
+    });
+
+    // Mouseleave - hide tooltip with delay
+    highlightEl.addEventListener('mouseleave', () => {
+      hideNoteTooltipDelayed();
+    });
+
+    // Click - show editor
+    highlightEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideNoteTooltip();
+      const highlight = getHighlightById(highlightId);
+      if (highlight) {
+        showNoteEditor(highlight, highlightEl);
+      }
+    });
+  }
+
+  /**
+   * Create and configure the tooltip element content
+   * @param {Object} highlight - The highlight data object
+   * @returns {Element} The configured tooltip element
+   */
+  function createTooltipElement(highlight) {
+    const tooltip = ensureTooltipContainer();
+    tooltip.innerHTML = `
+      <div class="owc-note-tooltip-content">${escapeHtml(highlight.note || '')}</div>
+    `;
+    return tooltip;
+  }
+
+  /**
+   * Show note tooltip near the highlight element
+   * @param {Object} highlight - The highlight data object
+   * @param {Element} targetElement - The highlight span element
+   */
+  function showNoteTooltip(highlight, targetElement) {
+    if (!highlight || !highlight.note || !targetElement) {
+      return;
+    }
+
+    // Clear any pending hide timeout
+    if (hideTooltipTimeout) {
+      clearTimeout(hideTooltipTimeout);
+      hideTooltipTimeout = null;
+    }
+
+    const tooltip = createTooltipElement(highlight);
+    const position = getTooltipPosition(targetElement, 250, 200);
+
+    tooltip.style.left = `${position.left}px`;
+    tooltip.style.top = `${position.top}px`;
+    tooltip.style.display = 'block';
+
+    // Add event listeners for tooltip hover (to keep it open when mouse enters tooltip)
+    tooltip.onmouseenter = () => {
+      if (hideTooltipTimeout) {
+        clearTimeout(hideTooltipTimeout);
+        hideTooltipTimeout = null;
+      }
+    };
+
+    tooltip.onmouseleave = () => {
+      hideNoteTooltipDelayed();
+    };
+  }
+
+  /**
+   * Hide note tooltip immediately
+   */
+  function hideNoteTooltip() {
+    if (hideTooltipTimeout) {
+      clearTimeout(hideTooltipTimeout);
+      hideTooltipTimeout = null;
+    }
+
+    if (tooltipElement) {
+      tooltipElement.style.display = 'none';
+    }
+  }
+
+  /**
+   * Hide note tooltip with delay (300ms)
+   * Allows user to move mouse into tooltip
+   */
+  function hideNoteTooltipDelayed() {
+    if (hideTooltipTimeout) {
+      clearTimeout(hideTooltipTimeout);
+    }
+
+    hideTooltipTimeout = setTimeout(() => {
+      hideNoteTooltip();
+    }, 300);
+  }
+
+  /**
+   * Escape HTML special characters
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Create and configure the editor element content
+   * @param {Object} highlight - The highlight data object
+   * @returns {Element} The configured editor element
+   */
+  function createEditorElement(highlight) {
+    const editor = ensureEditorContainer();
+    editor.innerHTML = `
+      <div class="owc-note-editor-header">
+        <span class="owc-note-editor-title">编辑笔记</span>
+      </div>
+      <textarea class="owc-note-editor-textarea" placeholder="添加笔记...">${escapeHtml(highlight.note || '')}</textarea>
+      <div class="owc-note-editor-actions">
+        <div class="owc-note-editor-actions-left">
+          <button class="owc-editor-btn delete" data-action="delete">删除高亮</button>
+        </div>
+        <div class="owc-note-editor-actions-right">
+          <button class="owc-editor-btn cancel" data-action="cancel">取消</button>
+          <button class="owc-editor-btn save" data-action="save">保存</button>
+        </div>
+      </div>
+      <div class="owc-editor-hint">Enter 保存 · Escape 取消</div>
+      <div class="owc-delete-confirmation" style="display: none;">
+        <p style="color: #ef4444; margin: 0 0 12px 0; font-size: 13px;">确定要删除这个高亮吗？此操作不可撤销。</p>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="owc-editor-btn cancel" data-action="cancel-delete">取消</button>
+          <button class="owc-editor-btn delete" style="background: #ef4444; color: white; border: none;" data-action="confirm-delete">确认删除</button>
+        </div>
+      </div>
+    `;
+    return editor;
+  }
+
+  /**
+   * Show note editor near the highlight element
+   * @param {Object} highlight - The highlight data object
+   * @param {Element} targetElement - The highlight span element
+   */
+  function showNoteEditor(highlight, targetElement) {
+    if (!highlight || !targetElement) {
+      return;
+    }
+
+    // Store current editing highlight ID
+    currentEditingHighlightId = highlight.id;
+
+    const editor = createEditorElement(highlight);
+    const position = getTooltipPosition(targetElement, 300, 250);
+
+    editor.style.left = `${position.left}px`;
+    editor.style.top = `${position.top}px`;
+    editor.style.display = 'block';
+
+    // Focus textarea
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }, 50);
+    }
+
+    // Bind editor events
+    bindEditorEvents(editor, highlight, targetElement);
+  }
+
+  /**
+   * Bind events to editor buttons and textarea
+   * @param {Element} editor - The editor element
+   * @param {Object} highlight - The highlight data object
+   * @param {Element} targetElement - The highlight span element
+   */
+  function bindEditorEvents(editor, highlight, targetElement) {
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    const saveBtn = editor.querySelector('[data-action="save"]');
+    const cancelBtn = editor.querySelector('[data-action="cancel"]');
+    const deleteBtn = editor.querySelector('[data-action="delete"]');
+    const cancelDeleteBtn = editor.querySelector('[data-action="cancel-delete"]');
+    const confirmDeleteBtn = editor.querySelector('[data-action="confirm-delete"]');
+    const confirmationDiv = editor.querySelector('.owc-delete-confirmation');
+    const editorContent = editor.querySelector('.owc-note-editor-header');
+
+    // Save button
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        saveNoteFromEditor(highlight.id, textarea.value);
+        hideNoteEditor();
+      };
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        hideNoteEditor();
+      };
+    }
+
+    // Delete button - show confirmation
+    if (deleteBtn) {
+      deleteBtn.onclick = () => {
+        showDeleteConfirmation(editor);
+      };
+    }
+
+    // Cancel delete
+    if (cancelDeleteBtn) {
+      cancelDeleteBtn.onclick = () => {
+        hideDeleteConfirmation(editor);
+      };
+    }
+
+    // Confirm delete
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.onclick = () => {
+        removeHighlight(highlight.id);
+        hideNoteEditor();
+      };
+    }
+
+    // Keyboard shortcuts
+    if (textarea) {
+      textarea.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          saveNoteFromEditor(highlight.id, textarea.value);
+          hideNoteEditor();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          hideNoteEditor();
+        }
+      };
+    }
+
+    // Click outside to close
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 100);
+  }
+
+  /**
+   * Handle click outside editor to close it
+   */
+  function handleOutsideClick(e) {
+    if (editorElement && !editorElement.contains(e.target) && 
+        !e.target.closest('.owc-highlight')) {
+      hideNoteEditor();
+    }
+  }
+
+  /**
+   * Hide note editor
+   */
+  function hideNoteEditor() {
+    if (editorElement) {
+      editorElement.style.display = 'none';
+    }
+    currentEditingHighlightId = null;
+    document.removeEventListener('click', handleOutsideClick);
+  }
+
+  /**
+   * Save note content from editor to highlight
+   * @param {number} highlightId - The highlight ID
+   * @param {string} noteContent - The new note content
+   */
+  function saveNoteFromEditor(highlightId, noteContent) {
+    updateHighlightNote(highlightId, noteContent);
+  }
+
+  /**
+   * Update highlight note in the highlights array
+   * @param {number} highlightId - The highlight ID
+   * @param {string} newNote - The new note content
+   */
+  function updateHighlightNote(highlightId, newNote) {
+    const id = parseInt(highlightId, 10);
+    const highlight = highlights.find(h => h.id === id);
+    
+    if (highlight) {
+      highlight.note = newNote || null;
+      
+      // Update DOM element class
+      const highlightEl = document.querySelector(`[data-highlight-id="${id}"]`);
+      if (highlightEl) {
+        if (newNote && newNote.trim()) {
+          highlightEl.classList.add('has-note');
+        } else {
+          highlightEl.classList.remove('has-note');
+        }
+      }
+    }
+  }
+
+  /**
+   * Show delete confirmation in editor
+   * @param {Element} editor - The editor element
+   */
+  function showDeleteConfirmation(editor) {
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    const actions = editor.querySelector('.owc-note-editor-actions');
+    const hint = editor.querySelector('.owc-editor-hint');
+    const confirmation = editor.querySelector('.owc-delete-confirmation');
+
+    if (textarea) textarea.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+    if (hint) hint.style.display = 'none';
+    if (confirmation) confirmation.style.display = 'block';
+  }
+
+  /**
+   * Hide delete confirmation, return to edit mode
+   * @param {Element} editor - The editor element
+   */
+  function hideDeleteConfirmation(editor) {
+    const textarea = editor.querySelector('.owc-note-editor-textarea');
+    const actions = editor.querySelector('.owc-note-editor-actions');
+    const hint = editor.querySelector('.owc-editor-hint');
+    const confirmation = editor.querySelector('.owc-delete-confirmation');
+
+    if (textarea) textarea.style.display = 'block';
+    if (actions) actions.style.display = 'flex';
+    if (hint) hint.style.display = 'block';
+    if (confirmation) confirmation.style.display = 'none';
+  }
+
+  /**
+   * Remove highlight from DOM and highlights array
+   * @param {number} highlightId - The highlight ID to remove
+   */
+  function removeHighlight(highlightId) {
+    const id = parseInt(highlightId, 10);
+    const wrapper = document.querySelector(`[data-highlight-id="${id}"]`);
+    
+    if (wrapper && wrapper.parentNode) {
+      // Create text node with original content
+      const textNode = document.createTextNode(wrapper.textContent);
+      // Replace wrapper with text node
+      wrapper.parentNode.replaceChild(textNode, wrapper);
+    }
+
+    // Remove from highlights array
+    highlights = highlights.filter(h => h.id !== id);
   }
 
   console.log('Obsidian Web Clipper: Content script loaded');

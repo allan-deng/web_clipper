@@ -37,6 +37,9 @@
         "lib/turndown.js",
         "content.js"
       ],
+      "css": [
+        "styles/highlight.css"
+      ],
       "run_at": "document_idle"
     }
   ],
