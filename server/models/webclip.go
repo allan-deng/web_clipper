@@ -18,33 +18,11 @@ type Metadata struct {
 }
 
 // Content contains the article content
+// Note: The markdown field now contains the complete, pre-rendered Markdown document
+// including frontmatter, AI summary, highlights, and main content.
+// The browser extension is responsible for generating the full Markdown using templates.
 type Content struct {
-	Markdown   string      `json:"markdown" binding:"required"`
-	AISummary  *AISummary  `json:"aiSummary"`
-	Highlights []Highlight `json:"highlights"`
-}
-
-// AISummary represents AI-generated summary
-type AISummary struct {
-	KeyPoints      []string   `json:"keyPoints"`
-	Evidence       []Evidence `json:"evidence"`
-	MermaidDiagram string     `json:"mermaidDiagram"`
-	Status         string     `json:"status"`  // SUCCESS, PENDING, FAILED
-	RawText        string     `json:"rawText"` // Raw AI summary text (fallback if keyPoints is empty)
-}
-
-// Evidence represents a supporting quote for a key point
-type Evidence struct {
-	Point string `json:"point"`
-	Quote string `json:"quote"`
-}
-
-// Highlight represents a user highlight with optional note
-type Highlight struct {
-	Text     string `json:"text" binding:"required"`
-	Note     string `json:"note"`
-	Color    string `json:"color"`
-	Position int    `json:"position"`
+	Markdown string `json:"markdown" binding:"required"`
 }
 
 // Asset represents an image or resource to be saved

@@ -12,6 +12,7 @@ const elements = {
   pageUrl: document.getElementById('page-url'),
   saveBtn: document.getElementById('save-btn'),
   copyBtn: document.getElementById('copy-btn'),
+  noteModeToggle: document.getElementById('note-mode-toggle'),
   progress: document.getElementById('progress'),
   progressFill: document.getElementById('progress-fill'),
   progressText: document.getElementById('progress-text'),
@@ -25,6 +26,7 @@ const elements = {
 // State
 let isClipping = false;
 let isCopying = false;
+let currentTabId = null;
 
 /**
  * Initialize the popup
@@ -35,6 +37,9 @@ async function init() {
   
   // Check server health
   await checkServerHealth();
+  
+  // Load note mode state for current tab
+  await loadNoteModeState();
   
   // Set up event listeners
   setupEventListeners();
@@ -48,6 +53,7 @@ async function loadPageInfo() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     if (tab) {
+      currentTabId = tab.id;
       elements.pageTitle.textContent = tab.title || 'Untitled Page';
       elements.pageUrl.textContent = tab.url || '';
       
@@ -55,8 +61,10 @@ async function loadPageInfo() {
       if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
         elements.saveBtn.disabled = false;
         elements.copyBtn.disabled = false;
+        elements.noteModeToggle.disabled = false;
       } else {
         showStatusMessage('Cannot clip this page', 'warning');
+        elements.noteModeToggle.disabled = true;
       }
     }
   } catch (error) {
@@ -95,11 +103,59 @@ function setupEventListeners() {
   // Copy button click
   elements.copyBtn.addEventListener('click', handleCopyClick);
   
+  // Note mode toggle
+  elements.noteModeToggle.addEventListener('change', handleNoteModeToggle);
+  
   // Settings link click
   elements.settingsLink.addEventListener('click', (e) => {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
   });
+}
+
+/**
+ * Load note mode state for current tab
+ */
+async function loadNoteModeState() {
+  if (!currentTabId) return;
+  
+  try {
+    // Query current state from content script
+    const response = await chrome.tabs.sendMessage(currentTabId, { type: 'GET_NOTE_MODE_STATE' });
+    if (response && response.success) {
+      elements.noteModeToggle.checked = response.enabled;
+    }
+  } catch (error) {
+    // Content script may not be ready, default to off
+    console.log('Could not get note mode state:', error.message);
+    elements.noteModeToggle.checked = false;
+  }
+}
+
+/**
+ * Handle note mode toggle change
+ */
+async function handleNoteModeToggle(e) {
+  const enabled = e.target.checked;
+  
+  if (!currentTabId) return;
+  
+  try {
+    const response = await chrome.tabs.sendMessage(currentTabId, { 
+      type: 'SET_NOTE_MODE', 
+      enabled: enabled 
+    });
+    
+    if (!response || !response.success) {
+      // Revert toggle if failed
+      elements.noteModeToggle.checked = !enabled;
+      console.error('Failed to toggle note mode:', response?.error);
+    }
+  } catch (error) {
+    // Revert toggle if failed
+    elements.noteModeToggle.checked = !enabled;
+    console.error('Failed to toggle note mode:', error);
+  }
 }
 
 /**
@@ -125,15 +181,16 @@ async function handleSaveClick() {
     // Update progress
     updateProgress(20, 'Processing page...');
     
-    // Send message to content script to start clipping
+    // Send message to content script to start clipping (returns raw data)
     const clipResponse = await chrome.tabs.sendMessage(tab.id, { type: 'START_CLIP' });
     
     if (!clipResponse.success) {
       throw new Error(clipResponse.error || 'Failed to extract content');
     }
     
-    // Get clip data for modification
+    // Get clip data
     let clipData = clipResponse.data;
+    let aiSummary = null;
     
     // Generate AI Summary if enabled
     try {
@@ -151,15 +208,10 @@ async function handleSaveClick() {
           const aiSummaryText = await generateAISummary(contentForAI);
           
           if (aiSummaryText) {
-            // Parse AI summary into structured format for backend
-            clipData.content.aiSummary = {
-              evidence: [],
-              mermaidDiagram: '',
+            aiSummary = {
               status: 'SUCCESS',
-              rawText: aiSummaryText  // Store raw text for fallback
+              rawText: aiSummaryText
             };
-            
-            // finalMarkdown = insertAISummaryIntoMarkdown(clipData.content.markdown, aiSummary);
             console.log('AI summary generated for Save to Obsidian');
           }
         } else {
@@ -172,12 +224,36 @@ async function handleSaveClick() {
     }
     
     // Update progress
-    updateProgress(60, 'Saving to Obsidian...');
+    updateProgress(60, 'Generating Markdown...');
+    
+    // Load template and generate complete Markdown
+    const template = await loadMarkdownTemplate();
+    const fullMarkdown = renderTemplate(template, {
+      title: clipData.metadata.title,
+      url: clipData.metadata.url,
+      domain: clipData.metadata.domain,
+      savedAt: clipData.metadata.savedAt,
+      tags: clipData.metadata.tags,
+      aiSummary: aiSummary,
+      highlights: clipData.content.highlights,
+      content: clipData.content.markdown
+    });
+    
+    // Prepare simplified clip data for server (v2.0 API)
+    const saveData = {
+      metadata: clipData.metadata,
+      content: {
+        markdown: fullMarkdown
+      },
+      assets: clipData.assets
+    };
+    
+    updateProgress(80, 'Saving to Obsidian...');
     
     // Send clip data to background for saving
     const saveResponse = await chrome.runtime.sendMessage({
       type: 'SAVE_CLIP',
-      data: clipData
+      data: saveData
     });
     
     if (!saveResponse.success) {
@@ -282,14 +358,14 @@ async function handleCopyClick() {
       throw new Error('No active tab found');
     }
     
-    // Send message to content script to extract content
-    const response = await chrome.tabs.sendMessage(tab.id, { type: 'COPY_TO_CLIPBOARD' });
+    // Send message to content script to extract raw content
+    const response = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_RAW_CONTENT' });
     
     if (!response.success) {
       throw new Error(response.error || 'Failed to extract content');
     }
     
-    let finalMarkdown = response.markdown;
+    let aiSummary = null;
     
     // Try to generate AI summary if enabled
     try {
@@ -300,17 +376,19 @@ async function handleCopyClick() {
       if (config.aiEnabled) {
         elements.copyBtn.querySelector('.btn-text').textContent = '生成摘要...';
         
-        // Extract plain text content for AI (remove frontmatter and markdown syntax)
-        const contentForAI = extractPlainTextForAI(response.markdown);
+        // Extract plain text content for AI
+        const contentForAI = extractPlainTextForAI(response.data.markdown);
         console.log('Content for AI length:', contentForAI?.length || 0);
         
         if (contentForAI && contentForAI.length > 100) {
-          const aiSummary = await generateAISummary(contentForAI);
+          const aiSummaryText = await generateAISummary(contentForAI);
           
-          if (aiSummary) {
-            // Insert AI summary after frontmatter
-            finalMarkdown = insertAISummaryIntoMarkdown(response.markdown, aiSummary);
-            console.log('AI summary inserted into markdown');
+          if (aiSummaryText) {
+            aiSummary = {
+              status: 'SUCCESS',
+              rawText: aiSummaryText
+            };
+            console.log('AI summary generated');
           }
         } else {
           console.log('Content too short for AI summary (< 100 chars)');
@@ -322,6 +400,19 @@ async function handleCopyClick() {
       console.warn('AI summary generation failed, continuing without it:', aiError);
       // Continue without AI summary - don't fail the whole copy operation
     }
+    
+    // Load template and generate complete Markdown
+    const template = await loadMarkdownTemplate();
+    const finalMarkdown = renderTemplate(template, {
+      title: response.data.metadata.title,
+      url: response.data.metadata.url,
+      domain: response.data.metadata.domain,
+      savedAt: response.data.metadata.clippedAt || new Date().toISOString(),
+      tags: response.data.metadata.tags || [],
+      aiSummary: aiSummary,
+      highlights: response.data.highlights || [],
+      content: response.data.markdown
+    });
     
     // Write to clipboard in popup context (has focus)
     try {
@@ -373,7 +464,7 @@ function extractPlainTextForAI(markdown) {
   let content = markdown.replace(/^---[\s\S]*?---\n*/m, '');
   
   // Remove section headers we added
-  content = content.replace(/^## (我的笔记|正文)\s*\n/gm, '');
+  content = content.replace(/^## (我的笔记|正文|摘要)\s*\n/gm, '');
   
   // Remove markdown links but keep text
   content = content.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
@@ -396,25 +487,168 @@ function extractPlainTextForAI(markdown) {
   return content;
 }
 
+// ===== Template Service Functions (inline for browser extension compatibility) =====
+
 /**
- * Insert AI summary into markdown after frontmatter
+ * Default Markdown template
  */
-function insertAISummaryIntoMarkdown(markdown, aiSummary) {
-  if (!aiSummary) return markdown;
-  
-  // Find the end of frontmatter
-  const frontmatterEnd = markdown.indexOf('---', 4);
-  if (frontmatterEnd === -1) {
-    // No frontmatter, prepend summary
-    return `## 摘要\n\n${aiSummary}\n\n---\n\n${markdown}`;
+const DEFAULT_MARKDOWN_TEMPLATE = `---
+title: "{{title}}"
+url: "{{url}}"
+date: {{date}}
+tags:
+{{tags}}
+---
+
+{{ai_summary}}
+
+{{highlights}}
+
+## 正文
+
+{{content}}`;
+
+/**
+ * Load markdown template from Chrome Storage
+ * @returns {Promise<string>} The saved template or default template
+ */
+async function loadMarkdownTemplate() {
+  try {
+    const config = await chrome.storage.local.get(['markdownTemplate']);
+    return config.markdownTemplate || DEFAULT_MARKDOWN_TEMPLATE;
+  } catch (error) {
+    console.warn('Failed to load template from storage:', error);
+    return DEFAULT_MARKDOWN_TEMPLATE;
+  }
+}
+
+/**
+ * Render a template with the given data
+ * @param {string} template - The template string with {{placeholder}} syntax
+ * @param {Object} data - The data object containing values for placeholders
+ * @returns {string} The rendered template
+ */
+function renderTemplate(template, data) {
+  if (!template) {
+    template = DEFAULT_MARKDOWN_TEMPLATE;
+  }
+
+  // Prepare all placeholder values
+  const values = {
+    title: escapeYamlString(data.title || ''),
+    url: escapeYamlString(data.url || ''),
+    domain: data.domain || '',
+    date: formatDateForTemplate(data.savedAt || data.datetime),
+    datetime: data.savedAt || data.datetime || new Date().toISOString(),
+    tags: formatTagsForTemplate(data.tags),
+    ai_summary: formatAISummaryForTemplate(data.aiSummary),
+    highlights: formatHighlightsForTemplate(data.highlights),
+    content: data.content || data.markdown || ''
+  };
+
+  // Replace all placeholders
+  let result = template;
+  for (const [key, value] of Object.entries(values)) {
+    const placeholder = `{{${key}}}`;
+    result = result.split(placeholder).join(value);
+  }
+
+  return result;
+}
+
+/**
+ * Format date from ISO 8601 timestamp to YYYY-MM-DD
+ */
+function formatDateForTemplate(datetime) {
+  if (!datetime) {
+    return new Date().toISOString().split('T')[0];
   }
   
-  // Insert after frontmatter
-  const afterFrontmatter = frontmatterEnd + 3;
-  const before = markdown.substring(0, afterFrontmatter);
-  const after = markdown.substring(afterFrontmatter);
+  try {
+    const date = new Date(datetime);
+    return date.toISOString().split('T')[0];
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
+}
+
+/**
+ * Format tags array to YAML list format
+ */
+function formatTagsForTemplate(tags) {
+  if (!tags || !Array.isArray(tags) || tags.length === 0) {
+    return '';
+  }
   
-  return `${before}\n\n## 摘要\n\n${aiSummary}\n\n---\n${after}`;
+  return tags.map(tag => `  - ${tag}`).join('\n');
+}
+
+/**
+ * Format AI summary for template
+ */
+function formatAISummaryForTemplate(aiSummary) {
+  if (!aiSummary) {
+    return '';
+  }
+
+  // Handle raw text string
+  if (typeof aiSummary === 'string') {
+    if (!aiSummary.trim()) {
+      return '';
+    }
+    return `## 摘要\n\n${aiSummary}\n\n---\n`;
+  }
+
+  // Handle object with status
+  if (aiSummary.status !== 'SUCCESS') {
+    return '';
+  }
+
+  // Use rawText if available
+  if (aiSummary.rawText && aiSummary.rawText.trim()) {
+    return `## 摘要\n\n${aiSummary.rawText}\n\n---\n`;
+  }
+
+  return '';
+}
+
+/**
+ * Format highlights array for template
+ */
+function formatHighlightsForTemplate(highlights) {
+  if (!highlights || !Array.isArray(highlights) || highlights.length === 0) {
+    return '';
+  }
+
+  // Sort by position
+  const sorted = [...highlights].sort((a, b) => (a.position || 0) - (b.position || 0));
+
+  const lines = ['## 我的笔记', ''];
+  
+  for (const highlight of sorted) {
+    lines.push(`> **高亮**: ${highlight.text}`);
+    if (highlight.note) {
+      lines.push(`> `);
+      lines.push(`> 💬 批注: ${highlight.note}`);
+    }
+    lines.push('');
+  }
+  
+  lines.push('---');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+/**
+ * Escape special characters in YAML string values
+ */
+function escapeYamlString(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n');
 }
 
 // Initialize when DOM is ready

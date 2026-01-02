@@ -25,8 +25,10 @@ if (window.__obsidianWebClipperLoaded) {
   let hideTooltipTimeout = null;
   let currentEditingHighlightId = null;
 
-  // Initialize highlight mode
-  initHighlightMode();
+  // Note mode state (default: disabled)
+  let noteModeEnabled = false;
+  let noteModeInitialized = false;
+  let selectionMenuElement = null;
 
   /**
    * Message listener for commands from popup/background
@@ -53,12 +55,88 @@ if (window.__obsidianWebClipperLoaded) {
       case 'COPY_TO_CLIPBOARD':
         return await handleCopyToClipboard();
       
+      case 'EXTRACT_RAW_CONTENT':
+        return await handleExtractRawContent();
+      
+      case 'GET_HIGHLIGHTS':
+        return { success: true, highlights: collectHighlights() };
+      
       case 'GET_PAGE_INFO':
         return getPageInfo();
+      
+      case 'GET_NOTE_MODE_STATE':
+        return { success: true, enabled: noteModeEnabled };
+      
+      case 'SET_NOTE_MODE':
+        return handleSetNoteMode(message.enabled);
       
       default:
         throw new Error(`Unknown message type: ${message.type}`);
     }
+  }
+
+  /**
+   * Handle set note mode request
+   */
+  function handleSetNoteMode(enabled) {
+    try {
+      if (enabled) {
+        enableNoteMode();
+      } else {
+        disableNoteMode();
+      }
+      return { success: true, enabled: noteModeEnabled };
+    } catch (error) {
+      console.error('Failed to set note mode:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Enable note mode - initialize highlight UI
+   */
+  function enableNoteMode() {
+    if (noteModeEnabled) return;
+    
+    noteModeEnabled = true;
+    
+    if (!noteModeInitialized) {
+      initHighlightMode();
+      noteModeInitialized = true;
+    } else {
+      // Show the selection menu if already initialized
+      if (selectionMenuElement) {
+        selectionMenuElement.style.display = 'none'; // Will show on selection
+      }
+    }
+    
+    // Add event listener for text selection
+    document.addEventListener('mouseup', handleTextSelection);
+    
+    console.log('Obsidian Web Clipper: Note mode enabled');
+  }
+
+  /**
+   * Disable note mode - hide highlight UI but keep highlights
+   */
+  function disableNoteMode() {
+    if (!noteModeEnabled) return;
+    
+    noteModeEnabled = false;
+    
+    // Hide selection menu
+    if (selectionMenuElement) {
+      selectionMenuElement.style.display = 'none';
+    }
+    
+    // Hide tooltip and editor
+    hideNoteTooltip();
+    hideNoteEditor();
+    
+    // Remove text selection listener
+    document.removeEventListener('mouseup', handleTextSelection);
+    
+    console.log('Obsidian Web Clipper: Note mode disabled');
   }
 
   /**
@@ -141,6 +219,53 @@ if (window.__obsidianWebClipperLoaded) {
       
     } catch (error) {
       console.error('Content extraction failed:', error);
+      return {
+        success: false,
+        error: error.message || '内容提取失败，请重试',
+        errorType: 'EXTRACTION_FAILED'
+      };
+    }
+  }
+
+  /**
+   * Handle extract raw content request (for template-based rendering in popup)
+   * Returns raw data without frontmatter - popup will apply template
+   */
+  async function handleExtractRawContent() {
+    try {
+      console.log('Starting raw content extraction...');
+      
+      // Extract content (reusing existing extraction logic)
+      const extractedContent = await extractContentForClipboard();
+      
+      if (!extractedContent || !extractedContent.markdown) {
+        return {
+          success: false,
+          error: '此页面没有可提取的文章内容',
+          errorType: 'NO_CONTENT'
+        };
+      }
+      
+      // Extract tags from page
+      const tags = extractTags();
+      
+      console.log(`Raw content extracted successfully with ${extractedContent.highlights?.length || 0} highlights`);
+      
+      // Return raw data - popup will apply template
+      return { 
+        success: true, 
+        data: {
+          metadata: {
+            ...extractedContent.metadata,
+            tags: tags
+          },
+          markdown: extractedContent.markdown,
+          highlights: extractedContent.highlights || []
+        }
+      };
+      
+    } catch (error) {
+      console.error('Raw content extraction failed:', error);
       return {
         success: false,
         error: error.message || '内容提取失败，请重试',
@@ -685,7 +810,56 @@ if (window.__obsidianWebClipperLoaded) {
    * Add custom rules to Turndown
    */
   function addTurndownRules(turndownService) {
-    // Handle code blocks with language
+    // Handle table-based code blocks (e.g., codehilite with linenos + code columns)
+    // This must come FIRST to catch these structures before other rules
+    turndownService.addRule('tableCodeBlock', {
+      filter: function (node) {
+        // Match div.codehilite or similar containers with table structure
+        if (node.nodeName !== 'DIV') return false;
+        
+        const className = node.className || '';
+        if (!/codehilite|highlight|syntax/i.test(className)) return false;
+        
+        // Must contain a table with linenos and code cells
+        const hasLinenosCell = node.querySelector('td.linenos, td.line-numbers, .linenodiv');
+        const hasCodeCell = node.querySelector('td.code, td.source');
+        
+        return hasLinenosCell || hasCodeCell;
+      },
+      replacement: function (content, node) {
+        // Extract language from class name
+        const className = node.className || '';
+        let language = '';
+        
+        // Try to find language in class name
+        const langMatch = className.match(/codehilite\s+(\w+)|language-(\w+)|highlight-(\w+)/);
+        if (langMatch) {
+          language = langMatch[1] || langMatch[2] || langMatch[3] || '';
+        }
+        
+        // Extract code from the code cell only (ignore linenos cell)
+        const codeCell = node.querySelector('td.code, td.source');
+        if (codeCell) {
+          const code = codeCell.textContent || '';
+          return `\n\n\`\`\`${language}\n${code.trim()}\n\`\`\`\n\n`;
+        }
+        
+        // Fallback: try to get code from pre inside, excluding linenos
+        const clone = node.cloneNode(true);
+        // Remove line number elements
+        clone.querySelectorAll('.linenos, .linenodiv, td.linenos, .line-numbers').forEach(el => el.remove());
+        
+        const pre = clone.querySelector('pre');
+        if (pre) {
+          const code = pre.textContent || '';
+          return `\n\n\`\`\`${language}\n${code.trim()}\n\`\`\`\n\n`;
+        }
+        
+        return content;
+      }
+    });
+
+    // Handle code blocks with language (enhanced to handle line numbers)
     turndownService.addRule('fencedCodeBlock', {
       filter: function (node) {
         return (
@@ -699,9 +873,91 @@ if (window.__obsidianWebClipperLoaded) {
         const className = codeElement.getAttribute('class') || '';
         const languageMatch = className.match(/language-(\w+)/);
         const language = languageMatch ? languageMatch[1] : '';
-        const code = codeElement.textContent || '';
+        
+        // Get code content, stripping line numbers if present
+        let code = extractCodeWithoutLineNumbers(codeElement);
         
         return `\n\n\`\`\`${language}\n${code}\n\`\`\`\n\n`;
+      }
+    });
+
+    // Handle complex code blocks with line numbers (common in modern sites)
+    // Matches structures like: div.code-block > (line-numbers + code-content)
+    turndownService.addRule('complexCodeBlock', {
+      filter: function (node) {
+        if (node.nodeName !== 'DIV' && node.nodeName !== 'FIGURE') return false;
+        
+        // Skip if already handled by tableCodeBlock rule
+        const className = node.className || '';
+        if (/codehilite/i.test(className)) return false;
+        
+        // Check for common code block class patterns
+        const isCodeBlock = /code|highlight|syntax|prism|hljs|shiki/i.test(className);
+        
+        // Check if it contains code-like elements
+        const hasCodeElement = node.querySelector('pre, code, .code-content, .code-line');
+        
+        return isCodeBlock && hasCodeElement;
+      },
+      replacement: function (content, node) {
+        // Try to extract language from class name
+        const className = node.className || '';
+        let language = '';
+        
+        // Common language class patterns
+        const langPatterns = [
+          /language-(\w+)/,
+          /lang-(\w+)/,
+          /highlight-(\w+)/,
+          /\b(javascript|typescript|python|go|rust|java|cpp|c|bash|shell|json|yaml|html|css|sql|gdscript)\b/i
+        ];
+        
+        for (const pattern of langPatterns) {
+          const match = className.match(pattern);
+          if (match) {
+            language = match[1].toLowerCase();
+            break;
+          }
+        }
+        
+        // Also check data attributes
+        if (!language) {
+          language = node.getAttribute('data-language') || 
+                     node.getAttribute('data-lang') || '';
+        }
+        
+        // Extract code content, excluding line numbers
+        let code = extractCodeFromComplexBlock(node);
+        
+        if (!code.trim()) {
+          return content; // Fallback to default processing
+        }
+        
+        return `\n\n\`\`\`${language}\n${code}\n\`\`\`\n\n`;
+      }
+    });
+
+    // Remove line number table cells before they get processed
+    turndownService.addRule('removeLineNumberCells', {
+      filter: function (node) {
+        if (node.nodeName !== 'TD') return false;
+        const className = node.className || '';
+        return /linenos|line-numbers/i.test(className);
+      },
+      replacement: function () {
+        return ''; // Remove line number cells entirely
+      }
+    });
+
+    // Remove line number div elements
+    turndownService.addRule('removeLineNumberDivs', {
+      filter: function (node) {
+        if (node.nodeName !== 'DIV') return false;
+        const className = node.className || '';
+        return /linenodiv|line-numbers-rows/i.test(className);
+      },
+      replacement: function () {
+        return ''; // Remove line number divs entirely
       }
     });
     
@@ -715,6 +971,95 @@ if (window.__obsidianWebClipperLoaded) {
     
     // Remove unwanted elements
     turndownService.remove(['script', 'style', 'noscript', 'iframe']);
+  }
+
+  /**
+   * Extract code content from a code element, removing line numbers
+   */
+  function extractCodeWithoutLineNumbers(codeElement) {
+    // Clone to avoid modifying original
+    const clone = codeElement.cloneNode(true);
+    
+    // Remove line number elements
+    const lineNumberSelectors = [
+      '.line-number', '.lineno', '.line-numbers', '.gutter',
+      '.ln-num', '.hljs-ln-numbers', '[data-line-number]',
+      'td.hljs-ln-numbers', '.code-line-number', '.linenodiv',
+      'td.linenos'
+    ];
+    
+    lineNumberSelectors.forEach(selector => {
+      clone.querySelectorAll(selector).forEach(el => el.remove());
+    });
+    
+    // Get text content
+    let code = clone.textContent || '';
+    
+    // Clean up: remove leading line numbers pattern (e.g., "1\n2\n3\n")
+    // This handles cases where line numbers are just text
+    code = code.replace(/^(\d+\n)+(?=\S)/gm, '');
+    
+    return code.trim();
+  }
+
+  /**
+   * Extract code from complex code block structures
+   */
+  function extractCodeFromComplexBlock(node) {
+    // Clone to avoid modifying original
+    const clone = node.cloneNode(true);
+    
+    // Remove line number containers (including table cells)
+    const lineNumberSelectors = [
+      '.line-numbers', '.line-number', '.lineno', '.gutter',
+      '.ln-num', '.hljs-ln-numbers', '.code-line-number',
+      'td.hljs-ln-numbers', '[class*="lineNumber"]',
+      '[class*="line-number"]', '.linenumber', '.linenodiv',
+      'td.linenos'
+    ];
+    
+    lineNumberSelectors.forEach(selector => {
+      clone.querySelectorAll(selector).forEach(el => el.remove());
+    });
+    
+    // Try to find the actual code content
+    const codeSelectors = [
+      'td.code', 'td.source', // Table-based code blocks
+      'code', 'pre', '.code-content', '.code-lines',
+      '.hljs-ln-code', 'td.hljs-ln-code', '.token-line'
+    ];
+    
+    let codeContent = '';
+    
+    for (const selector of codeSelectors) {
+      const codeEl = clone.querySelector(selector);
+      if (codeEl && codeEl.textContent.trim()) {
+        codeContent = codeEl.textContent;
+        break;
+      }
+    }
+    
+    // Fallback: get all text but try to clean it
+    if (!codeContent) {
+      codeContent = clone.textContent || '';
+    }
+    
+    // Clean up standalone line numbers at the beginning
+    // Pattern: lines that are just numbers followed by actual code
+    const lines = codeContent.split('\n');
+    const cleanedLines = [];
+    let foundCode = false;
+    
+    for (const line of lines) {
+      // Skip lines that are just numbers (line numbers)
+      if (/^\s*\d+\s*$/.test(line) && !foundCode) {
+        continue;
+      }
+      foundCode = true;
+      cleanedLines.push(line);
+    }
+    
+    return cleanedLines.join('\n').trim();
   }
 
   /**
@@ -790,21 +1135,7 @@ if (window.__obsidianWebClipperLoaded) {
       <button class="owc-menu-btn" data-action="note" title="Add note">📝</button>
     `;
     document.body.appendChild(menu);
-
-    // Handle text selection
-    document.addEventListener('mouseup', (e) => {
-      const selection = window.getSelection();
-      const text = selection.toString().trim();
-      
-      if (text.length > 0 && !e.target.closest('.owc-selection-menu')) {
-        menu.style.display = 'flex';
-        menu.style.left = `${e.clientX}px`;
-        menu.style.top = `${e.clientY + 10}px`;
-        menu.dataset.text = text;
-      } else if (!e.target.closest('.owc-selection-menu')) {
-        menu.style.display = 'none';
-      }
-    });
+    selectionMenuElement = menu;
 
     // Handle menu actions
     menu.addEventListener('click', (e) => {
@@ -833,6 +1164,25 @@ if (window.__obsidianWebClipperLoaded) {
         showNoteEditorForNewHighlight(text, targetPosition, range);
       }
     });
+  }
+
+  /**
+   * Handle text selection for highlight menu
+   */
+  function handleTextSelection(e) {
+    if (!noteModeEnabled || !selectionMenuElement) return;
+    
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    
+    if (text.length > 0 && !e.target.closest('.owc-selection-menu')) {
+      selectionMenuElement.style.display = 'flex';
+      selectionMenuElement.style.left = `${e.clientX}px`;
+      selectionMenuElement.style.top = `${e.clientY + 10}px`;
+      selectionMenuElement.dataset.text = text;
+    } else if (!e.target.closest('.owc-selection-menu')) {
+      selectionMenuElement.style.display = 'none';
+    }
   }
 
   /**

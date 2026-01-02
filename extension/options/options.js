@@ -4,7 +4,7 @@
 
 // T001: Default AI Summary Prompt constant
 const DEFAULT_SUMMARY_PROMPT = `# Role (角色设定)
-你是一位资深的信息架构师和逻辑分析专家。你擅长从繁杂的文本中通过“去噪”、“归纳”和“演绎”的方法，提取出最核心的信息骨架。
+你是一位资深的信息架构师和逻辑分析专家。你擅长从繁杂的文本中通过"去噪"、"归纳"和"演绎"的方法，提取出最核心的信息骨架。
 
 # Context (背景)
 我将提供一段来自网页的内容（可能包含HTML噪声、无关广告或非结构化文本）。你需要忽略干扰信息，专注于核心逻辑的提取。
@@ -31,17 +31,37 @@ const DEFAULT_SUMMARY_PROMPT = `# Role (角色设定)
 **核心内容逻辑：**
 1. **论点一：CAP 理论在现代云原生环境下的适用性降低**
     * *论据/细节：* Google Spanner 的论文证明了通过原子钟技术可以实现高可用的强一致性。
-    * *论据/细节：* 引用了 Brewer 教授 2012 年的补充说明，强调“三选二”具有误导性。
+    * *论据/细节：* 引用了 Brewer 教授 2012 年的补充说明，强调"三选二"具有误导性。
 2. **论点二：......**
     * *论据/细节：* ......
 
 # Constraints (约束)
-* 不要输出任何“根据文章内容”、“我分析如下”等废话，直接输出结果。
+* 不要输出任何"根据文章内容"、"我分析如下"等废话，直接输出结果。
 * 如果文中包含代码片段，简要概括代码的功能，不要照抄代码。
 * 保持客观，不要加入你的主观评价。
 
 # Input Text (输入文本)
 {content}`;
+
+// Default Markdown template constant
+const DEFAULT_MARKDOWN_TEMPLATE = `---
+title: "{{title}}"
+url: "{{url}}"
+date: {{date}}
+tags:
+{{tags}}
+---
+
+{{ai_summary}}
+
+{{highlights}}
+
+## 正文
+
+{{content}}`;
+
+// Maximum template length
+const MAX_TEMPLATE_LENGTH = 5000;
 
 // DOM Elements
 const elements = {
@@ -60,6 +80,10 @@ const elements = {
   customPrompt: document.getElementById('customPrompt'),
   resetPromptBtn: document.getElementById('resetPromptBtn'),
   promptCharCount: document.getElementById('promptCharCount'),
+  // Markdown template elements
+  markdownTemplate: document.getElementById('markdownTemplate'),
+  resetTemplateBtn: document.getElementById('resetTemplateBtn'),
+  templateCharCount: document.getElementById('templateCharCount'),
   saveBtn: document.getElementById('saveBtn'),
   testBtn: document.getElementById('testBtn')
 };
@@ -91,7 +115,9 @@ async function loadSettings() {
     'openrouterApiKey',
     'openrouterModel',
     // T027: Custom prompt setting
-    'customSummaryPrompt'
+    'customSummaryPrompt',
+    // Markdown template setting
+    'markdownTemplate'
   ]);
   
   elements.serverUrl.value = config.serverUrl || 'http://localhost:18080';
@@ -112,6 +138,12 @@ async function loadSettings() {
   // T027: Load custom prompt - show default if none saved
   if (elements.customPrompt) {
     elements.customPrompt.value = config.customSummaryPrompt || DEFAULT_SUMMARY_PROMPT;
+  }
+  
+  // Load markdown template - show default if none saved
+  if (elements.markdownTemplate) {
+    elements.markdownTemplate.value = config.markdownTemplate || DEFAULT_MARKDOWN_TEMPLATE;
+    updateTemplateCharCount();
   }
   
   // Update AI settings visibility
@@ -150,6 +182,17 @@ function setupEventListeners() {
     elements.customPrompt.addEventListener('input', updatePromptCharCount);
     updatePromptCharCount();
   }
+  
+  // Markdown template: Reset button
+  if (elements.resetTemplateBtn) {
+    elements.resetTemplateBtn.addEventListener('click', resetTemplateToDefault);
+  }
+  
+  // Markdown template: Character counter
+  if (elements.markdownTemplate && elements.templateCharCount) {
+    elements.markdownTemplate.addEventListener('input', updateTemplateCharCount);
+    updateTemplateCharCount();
+  }
 }
 
 /**
@@ -164,6 +207,22 @@ function updatePromptCharCount() {
       elements.promptCharCount.classList.add('error');
     } else {
       elements.promptCharCount.classList.remove('error');
+    }
+  }
+}
+
+/**
+ * Update template character count display
+ */
+function updateTemplateCharCount() {
+  if (elements.markdownTemplate && elements.templateCharCount) {
+    const count = elements.markdownTemplate.value.length;
+    elements.templateCharCount.textContent = `${count} / ${MAX_TEMPLATE_LENGTH}`;
+    
+    if (count > MAX_TEMPLATE_LENGTH) {
+      elements.templateCharCount.classList.add('error');
+    } else {
+      elements.templateCharCount.classList.remove('error');
     }
   }
 }
@@ -247,6 +306,18 @@ async function saveSettings() {
       }
       // Store null if empty to indicate "use default"
       settings.customSummaryPrompt = promptValue || null;
+    }
+    
+    // Save markdown template
+    if (elements.markdownTemplate) {
+      const templateValue = elements.markdownTemplate.value.trim();
+      // Validate template length
+      if (templateValue.length > MAX_TEMPLATE_LENGTH) {
+        showStatus(`模版长度不能超过 ${MAX_TEMPLATE_LENGTH} 字符`, 'error');
+        return;
+      }
+      // Store null if empty to indicate "use default"
+      settings.markdownTemplate = templateValue || null;
     }
     
     // Validate server URL
@@ -381,6 +452,17 @@ function validateOpenRouterModel(model) {
 function resetPromptToDefault() {
   if (elements.customPrompt) {
     elements.customPrompt.value = DEFAULT_SUMMARY_PROMPT;
+    updatePromptCharCount();
+  }
+}
+
+/**
+ * Reset markdown template to default value
+ */
+function resetTemplateToDefault() {
+  if (elements.markdownTemplate) {
+    elements.markdownTemplate.value = DEFAULT_MARKDOWN_TEMPLATE;
+    updateTemplateCharCount();
   }
 }
 

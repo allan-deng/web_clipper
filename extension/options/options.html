@@ -264,6 +264,44 @@
       padding: 6px 12px;
       font-size: 12px;
     }
+
+    /* Template editor styles */
+    .template-editor {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px;
+      min-height: 200px;
+    }
+
+    .placeholder-docs {
+      margin-top: 12px;
+      padding: 12px;
+      background-color: var(--bg-input);
+      border-radius: var(--radius);
+      font-size: 12px;
+    }
+
+    .placeholder-docs h4 {
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .placeholder-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 12px;
+    }
+
+    .placeholder-list code {
+      color: var(--accent);
+      background-color: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .placeholder-list span {
+      color: var(--text-secondary);
+    }
   </style>
 </head>
 <body>
@@ -367,6 +405,38 @@
             <span id="promptCharCount" class="char-count">0 / 2000</span>
             <button type="button" id="resetPromptBtn" class="btn btn-small btn-secondary">恢复默认</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Markdown Template Settings -->
+    <div class="section">
+      <h2 class="section-title">📝 Markdown 模版</h2>
+      
+      <div class="form-group">
+        <label for="markdownTemplate">
+          自定义模版
+          <span class="label-hint">使用占位符自定义保存的 Markdown 格式</span>
+        </label>
+        <textarea id="markdownTemplate" class="template-editor" rows="12" placeholder="输入自定义模版..."></textarea>
+        <div class="prompt-footer">
+          <span id="templateCharCount" class="char-count">0 / 5000</span>
+          <button type="button" id="resetTemplateBtn" class="btn btn-small btn-secondary">恢复默认</button>
+        </div>
+      </div>
+
+      <div class="placeholder-docs">
+        <h4>可用占位符</h4>
+        <div class="placeholder-list">
+          <code>{{title}}</code><span>文章标题</span>
+          <code>{{url}}</code><span>原始网页 URL</span>
+          <code>{{domain}}</code><span>来源域名</span>
+          <code>{{date}}</code><span>保存日期 (YYYY-MM-DD)</span>
+          <code>{{datetime}}</code><span>保存时间 (ISO 8601)</span>
+          <code>{{tags}}</code><span>标签列表 (YAML 格式)</span>
+          <code>{{ai_summary}}</code><span>AI 摘要 (如有)</span>
+          <code>{{highlights}}</code><span>高亮笔记 (如有)</span>
+          <code>{{content}}</code><span>正文内容</span>
         </div>
       </div>
     </div>

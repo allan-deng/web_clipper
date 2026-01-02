@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"obsidian-clipper-server/config"
@@ -97,12 +96,13 @@ func (w *FileWriter) Save(req *models.SaveRequest) (*SaveResult, error) {
 		}
 	}
 
-	// Generate and write markdown file
-	markdown := w.generateMarkdown(req)
+	// Write the pre-rendered markdown file directly
+	// Note: The browser extension now generates the complete Markdown content
+	// including frontmatter, AI summary, highlights, and main content using templates.
 	mdFilename := sanitizedTitle + ".md"
 	mdPath := filepath.Join(tempDir, mdFilename)
 
-	if err := os.WriteFile(mdPath, []byte(markdown), 0644); err != nil {
+	if err := os.WriteFile(mdPath, []byte(req.Content.Markdown), 0644); err != nil {
 		return nil, &MarkdownWriteError{Msg: fmt.Sprintf("failed to write markdown file: %s", err.Error())}
 	}
 
@@ -182,63 +182,4 @@ func (w *FileWriter) writeAsset(assetsDir string, asset *models.Asset) error {
 	}
 
 	return nil
-}
-
-// generateMarkdown creates the final markdown content with frontmatter
-func (w *FileWriter) generateMarkdown(req *models.SaveRequest) string {
-	var sb strings.Builder
-
-	// YAML frontmatter
-	sb.WriteString("---\n")
-	sb.WriteString(fmt.Sprintf("title: \"%s\"\n", escapeYAMLString(req.Metadata.Title)))
-	sb.WriteString(fmt.Sprintf("url: \"%s\"\n", escapeYAMLString(req.Metadata.URL)))
-	sb.WriteString(fmt.Sprintf("date: %s\n", w.extractDate(req.Metadata.SavedAt)))
-	
-	// Tags
-	if len(req.Metadata.Tags) > 0 {
-		sb.WriteString("tags:\n")
-		for _, tag := range req.Metadata.Tags {
-			sb.WriteString(fmt.Sprintf("  - %s\n", tag))
-		}
-	}
-	sb.WriteString("---\n\n")
-
-	// AI Summary section (if available)
-	if req.Content.AISummary != nil && req.Content.AISummary.Status == "SUCCESS" {
-		sb.WriteString("## 摘要\n\n")
-
-		// If we have raw text (from direct AI response), use it directly
-		if req.Content.AISummary.RawText != "" {
-			sb.WriteString(req.Content.AISummary.RawText)
-			sb.WriteString("\n\n")
-		} 
-
-		sb.WriteString("---\n\n")
-	}
-
-	// Highlights section (if any)
-	if len(req.Content.Highlights) > 0 {
-		sb.WriteString("## 我的笔记\n\n")
-		for _, highlight := range req.Content.Highlights {
-			sb.WriteString(fmt.Sprintf("> **高亮**: %s\n", highlight.Text))
-			if highlight.Note != "" {
-				sb.WriteString(fmt.Sprintf("> \n> 💬 批注: %s\n", highlight.Note))
-			}
-			sb.WriteString("\n")
-		}
-		sb.WriteString("---\n\n")
-	}
-
-	// Main content
-	sb.WriteString("## 正文\n\n")
-	sb.WriteString(req.Content.Markdown)
-
-	return sb.String()
-}
-
-// escapeYAMLString escapes special characters in YAML string values
-func escapeYAMLString(s string) string {
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, "\"", "\\\"")
-	return s
 }
