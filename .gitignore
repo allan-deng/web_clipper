@@ -52,3 +52,10 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# AI Coding tools
+.codebuddy/
+.specify/
+CODEBUDDY.md
+AGENTS.md
+openspec/
