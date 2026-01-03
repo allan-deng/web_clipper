@@ -1,4 +1,4 @@
-// Package services provides business logic services for the Obsidian Web Clipper server.
+// Package services provides business logic services for the Web Clipper server.
 package services
 
 import (

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# API Test Script for Obsidian Web Clipper Backend
+# API Test Script for Web Clipper Backend
 #
 # Tests all API endpoints with various scenarios
 #
@@ -573,7 +573,7 @@ test_save_unicode() {
 #=============================================================================
 
 main() {
-    print_header "Obsidian Web Clipper API Tests"
+    print_header "Web Clipper API Tests"
     echo ""
     echo "  Server URL: $SERVER_URL"
     echo "  Auth Token: ${AUTH_TOKEN:0:10}..."

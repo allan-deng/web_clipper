@@ -1,4 +1,4 @@
-# 功能规范: Obsidian Web Clipper & Assistant
+# 功能规范: Web Clipper & Assistant
 
 **功能分支**: `001-web-clipper-core`
 **创建时间**: 2025-12-14

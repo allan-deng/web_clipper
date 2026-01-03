@@ -1,11 +1,11 @@
-# 实施计划: Obsidian Web Clipper & Assistant
+# 实施计划: Web Clipper & Assistant
 
 **分支**: `001-web-clipper-core` | **日期**: 2025-12-14 | **规范**: [spec.md](./spec.md)
 **输入**: 来自 `/specs/001-web-clipper-core/spec.md` 的功能规范
 
 ## 摘要
 
-本计划描述 Obsidian Web Clipper & Assistant 的 MVP 实施方案，包括：
+本计划描述 Web Clipper & Assistant 的 MVP 实施方案，包括：
 - **浏览器扩展 (Frontend)**: 使用原生 JavaScript + Manifest V3，负责内容提取、图片下载、高亮批注、AI 总结请求
 - **本地 Go 服务 (Backend)**: 使用 Golang + Gin，负责文件写入、目录管理、原子性保存
 

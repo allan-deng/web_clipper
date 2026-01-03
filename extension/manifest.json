@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Obsidian Web Clipper",
+  "name": "Web Clipper",
   "version": "0.1.0",
-  "description": "Save web pages to your Obsidian vault with images, highlights, and AI summaries",
+  "description": "Save web pages to your local vault with images, highlights, and AI summaries",
   
   "permissions": [
     "activeTab",
@@ -21,7 +21,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Obsidian Web Clipper"
+    "default_title": "Web Clipper"
   },
   
   "background": {

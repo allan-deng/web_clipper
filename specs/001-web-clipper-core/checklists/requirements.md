@@ -1,4 +1,4 @@
-# 规范质量检查清单: Obsidian Web Clipper & Assistant
+# 规范质量检查清单: Web Clipper & Assistant
 
 **目的**: 在继续规划之前验证规范的完整性和质量
 **创建时间**: 2025-12-14

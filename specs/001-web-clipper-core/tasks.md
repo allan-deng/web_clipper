@@ -1,4 +1,4 @@
-# 任务: Obsidian Web Clipper & Assistant
+# 任务: Web Clipper & Assistant
 
 **输入**: 来自 `/specs/001-web-clipper-core/` 的设计文档
 **前置条件**: plan.md ✅ | spec.md ✅ | data-model.md ✅ | contracts/ ✅

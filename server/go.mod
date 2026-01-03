@@ -1,4 +1,4 @@
-module obsidian-clipper-server
+module web-clipper-server
 
 go 1.21
 

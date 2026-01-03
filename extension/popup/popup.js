@@ -1,5 +1,5 @@
 /**
- * Obsidian Web Clipper - Popup Script
+ * Web Clipper - Popup Script
  * 
  * Handles popup UI interactions and communicates with background service worker.
  */
@@ -195,7 +195,7 @@ async function handleSaveClick() {
     // Generate AI Summary if enabled
     try {
       const config = await chrome.storage.local.get(['aiEnabled']);
-      console.log('Save to Obsidian - AI Enabled:', config.aiEnabled);
+      console.log('Save to local - AI Enabled:', config.aiEnabled);
       
       if (config.aiEnabled) {
         updateProgress(40, 'Generating AI summary...');
@@ -212,7 +212,7 @@ async function handleSaveClick() {
               status: 'SUCCESS',
               rawText: aiSummaryText
             };
-            console.log('AI summary generated for Save to Obsidian');
+            console.log('AI summary generated for Save to local');
           }
         } else {
           console.log('Content too short for AI summary');
@@ -248,7 +248,7 @@ async function handleSaveClick() {
       assets: clipData.assets
     };
     
-    updateProgress(80, 'Saving to Obsidian...');
+    updateProgress(80, 'Saving to local...');
     
     // Send clip data to background for saving
     const saveResponse = await chrome.runtime.sendMessage({
@@ -680,7 +680,7 @@ async function callOpenRouterAPI(content, model, apiKey, prompt) {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': chrome.runtime.getURL(''),
-      'X-Title': 'Obsidian Web Clipper'
+      'X-Title': 'Web Clipper'
     },
     body: JSON.stringify({
       model: model,

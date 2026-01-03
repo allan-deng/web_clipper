@@ -1,5 +1,5 @@
 #
-# Obsidian Web Clipper - Windows 安装脚本
+# Web Clipper - Windows 安装脚本
 #
 # 功能:
 #   - 安装 clipper-server 到用户目录
@@ -32,11 +32,11 @@ param(
 # 配置
 # ============================================
 $AppName = "clipper-server"
-$DisplayName = "Obsidian Web Clipper"
+$DisplayName = "Web Clipper"
 $RegKeyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-$RegValueName = "ObsidianWebClipper"
-$InstallDir = "$env:LOCALAPPDATA\ObsidianWebClipper"
-$ConfigDir = "$env:APPDATA\ObsidianWebClipper"
+$RegValueName = "WebClipper"
+$InstallDir = "$env:LOCALAPPDATA\WebClipper"
+$ConfigDir = "$env:APPDATA\WebClipper"
 $LogDir = "$ConfigDir\logs"
 
 # ============================================
@@ -52,7 +52,7 @@ function Write-Err { Write-Host "[ERROR] $args" -ForegroundColor Red }
 # ============================================
 function Show-Help {
     Write-Host ""
-    Write-Host "Obsidian Web Clipper - Windows 安装脚本" -ForegroundColor Cyan
+    Write-Host "Web Clipper - Windows 安装脚本" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "用法: .\install-windows.ps1 [选项]"
     Write-Host ""
@@ -103,7 +103,7 @@ function Create-Config {
     New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
     
     $ConfigContent = @"
-# Obsidian Web Clipper 配置文件
+# Web Clipper 配置文件
 
 server:
   port: 18080
@@ -114,7 +114,7 @@ auth:
   token: "your-secret-token-change-me"
 
 vault:
-  # 请修改为你的 Obsidian 库路径
+  # 请修改为你的 本地知识库 路径
   path: ""
   subdir: "Inbox/WebClips"
 
@@ -125,7 +125,7 @@ logging:
     $ConfigContent | Out-File -FilePath $ConfigFile -Encoding UTF8
     
     Write-Success "已创建配置文件: $ConfigFile"
-    Write-Warn "请编辑配置文件，设置你的 Obsidian 库路径和 token"
+    Write-Warn "请编辑配置文件，设置你的 本地知识库 路径和 token"
 }
 
 # ============================================
@@ -155,7 +155,7 @@ function Disable-AutoStart {
 function Install-App {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  Obsidian Web Clipper 安装程序" -ForegroundColor Cyan
+    Write-Host "  Web Clipper 安装程序" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -216,7 +216,7 @@ function Install-App {
 function Uninstall-App {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  Obsidian Web Clipper 卸载程序" -ForegroundColor Cyan
+    Write-Host "  Web Clipper 卸载程序" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
     

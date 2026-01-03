@@ -1,12 +1,13 @@
-// Package middleware provides HTTP middleware for the Obsidian Web Clipper server.
+// Package middleware provides HTTP middleware for the Web Clipper server.
 package middleware
 
 import (
 	"net/http"
 	"strings"
 
+	"web-clipper-server/models"
+
 	"github.com/gin-gonic/gin"
-	"obsidian-clipper-server/models"
 )
 
 // TokenAuth creates a middleware that validates Bearer token authentication

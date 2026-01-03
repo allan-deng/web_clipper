@@ -1,4 +1,4 @@
-# Obsidian Web Clipper - Build Makefile
+# Web Clipper - Build Makefile
 #
 # 构建目标:
 #   - 浏览器扩展 (Chrome/Edge)
@@ -37,7 +37,7 @@ all: build
 help:
 	@echo ""
 	@echo "╔══════════════════════════════════════════════════════════════╗"
-	@echo "║         Obsidian Web Clipper - 构建命令                       ║"
+	@echo "║         Web Clipper - 构建命令                       ║"
 	@echo "╚══════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "📦 构建命令:"
@@ -149,8 +149,8 @@ package: package-extension package-server
 package-extension:
 	@echo "📦 打包浏览器扩展..."
 	@mkdir -p $(DIST_DIR)
-	@rm -f $(DIST_DIR)/obsidian-web-clipper-extension-v$(EXT_VERSION).zip
-	@cd $(EXTENSION_DIR) && zip -r ../$(DIST_DIR)/obsidian-web-clipper-extension-v$(EXT_VERSION).zip \
+	@rm -f $(DIST_DIR)/web-clipper-extension-v$(EXT_VERSION).zip
+	@cd $(EXTENSION_DIR) && zip -r ../$(DIST_DIR)/web-clipper-extension-v$(EXT_VERSION).zip \
 		manifest.json \
 		background.js \
 		content.js \
@@ -162,20 +162,20 @@ package-extension:
 		styles/ \
 		icons/ \
 		-x "*.DS_Store" -x "*/.git/*"
-	@echo "✅ 扩展打包完成: $(DIST_DIR)/obsidian-web-clipper-extension-v$(EXT_VERSION).zip"
+	@echo "✅ 扩展打包完成: $(DIST_DIR)/web-clipper-extension-v$(EXT_VERSION).zip"
 
 # 打包所有平台 server
 package-server: build-server
 	@echo "📦 打包 server..."
 	@mkdir -p $(DIST_DIR)
 	@# macOS Intel
-	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-amd64-v$(VERSION).tar.gz darwin-amd64
+	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-amd64-$(VERSION).tar.gz darwin-amd64
 	@# macOS Apple Silicon
-	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-arm64-v$(VERSION).tar.gz darwin-arm64
+	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-arm64-$(VERSION).tar.gz darwin-arm64
 	@# Windows (使用 zip)
-	@cd $(BUILD_DIR) && zip -r ../$(DIST_DIR)/clipper-server-windows-amd64-v$(VERSION).zip windows-amd64
+	@cd $(BUILD_DIR) && zip -r ../$(DIST_DIR)/clipper-server-windows-amd64-$(VERSION).zip windows-amd64
 	@# Linux
-	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-linux-amd64-v$(VERSION).tar.gz linux-amd64
+	@cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-linux-amd64-$(VERSION).tar.gz linux-amd64
 	@# 生成校验和
 	@cd $(DIST_DIR) && shasum -a 256 clipper-server-* > checksums.sha256 2>/dev/null || sha256sum clipper-server-* > checksums.sha256 2>/dev/null || true
 	@echo "✅ Server 打包完成"
@@ -184,10 +184,10 @@ package-server: build-server
 package-all: package-extension
 	@echo "📦 打包 server (使用现有构建)..."
 	@mkdir -p $(DIST_DIR)
-	@if [ -d "$(BUILD_DIR)/darwin-amd64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-amd64-v$(VERSION).tar.gz darwin-amd64; fi
-	@if [ -d "$(BUILD_DIR)/darwin-arm64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-arm64-v$(VERSION).tar.gz darwin-arm64; fi
-	@if [ -d "$(BUILD_DIR)/windows-amd64" ]; then cd $(BUILD_DIR) && zip -rq ../$(DIST_DIR)/clipper-server-windows-amd64-v$(VERSION).zip windows-amd64; fi
-	@if [ -d "$(BUILD_DIR)/linux-amd64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-linux-amd64-v$(VERSION).tar.gz linux-amd64; fi
+	@if [ -d "$(BUILD_DIR)/darwin-amd64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-amd64-$(VERSION).tar.gz darwin-amd64; fi
+	@if [ -d "$(BUILD_DIR)/darwin-arm64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-darwin-arm64-$(VERSION).tar.gz darwin-arm64; fi
+	@if [ -d "$(BUILD_DIR)/windows-amd64" ]; then cd $(BUILD_DIR) && zip -rq ../$(DIST_DIR)/clipper-server-windows-amd64-$(VERSION).zip windows-amd64; fi
+	@if [ -d "$(BUILD_DIR)/linux-amd64" ]; then cd $(BUILD_DIR) && tar -czf ../$(DIST_DIR)/clipper-server-linux-amd64-$(VERSION).tar.gz linux-amd64; fi
 	@cd $(DIST_DIR) && shasum -a 256 clipper-server-* > checksums.sha256 2>/dev/null || sha256sum clipper-server-* > checksums.sha256 2>/dev/null || true
 	@echo "✅ 打包完成"
 
@@ -249,7 +249,7 @@ release: clean package
 	@echo "╚══════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "📋 版本信息:"
-	@echo "   Server:    v$(VERSION)"
+	@echo "   Server:    $(VERSION)"
 	@echo "   Extension: v$(EXT_VERSION)"
 	@echo ""
 	@echo "📁 发布文件:"

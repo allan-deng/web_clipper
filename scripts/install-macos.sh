@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Obsidian Web Clipper - macOS 安装脚本
+# Web Clipper - macOS 安装脚本
 #
 # 功能:
 #   - 安装 clipper-server 到 /usr/local/bin
@@ -22,12 +22,12 @@ set -e
 # 配置
 # ============================================
 APP_NAME="clipper-server"
-PLIST_LABEL="com.obsidian-web-clipper"
+PLIST_LABEL="com.web-clipper"
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="$HOME/.config/obsidian-web-clipper"
+CONFIG_DIR="$HOME/.config/web-clipper"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 PLIST_FILE="$PLIST_DIR/$PLIST_LABEL.plist"
-LOG_DIR="$HOME/Library/Logs/ObsidianWebClipper"
+LOG_DIR="$HOME/Library/Logs/WebClipper"
 
 # 颜色
 RED='\033[0;31m'
@@ -46,7 +46,7 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 # ============================================
 show_help() {
     echo ""
-    echo "Obsidian Web Clipper - macOS 安装脚本"
+    echo "Web Clipper - macOS 安装脚本"
     echo ""
     echo "用法: ./install-macos.sh [选项]"
     echo ""
@@ -95,7 +95,7 @@ create_config() {
     mkdir -p "$CONFIG_DIR"
     
     cat > "$CONFIG_DIR/config.yaml" << 'EOF'
-# Obsidian Web Clipper 配置文件
+# Web Clipper 配置文件
 
 server:
   port: 18080
@@ -106,7 +106,7 @@ auth:
   token: "your-secret-token-change-me"
 
 vault:
-  # 请修改为你的 Obsidian 库路径
+  # 请修改为你的 本地知识库 库路径
   path: ""
   subdir: "Inbox/WebClips"
 
@@ -115,7 +115,7 @@ logging:
 EOF
     
     success "已创建配置文件: $CONFIG_DIR/config.yaml"
-    warn "请编辑配置文件，设置你的 Obsidian 库路径和 token"
+    warn "请编辑配置文件，设置你的 知识库 路径和 token"
 }
 
 # ============================================
@@ -186,7 +186,7 @@ install() {
     
     echo ""
     echo "========================================"
-    echo "  Obsidian Web Clipper 安装程序"
+    echo "  Web Clipper 安装程序"
     echo "========================================"
     echo ""
     
@@ -259,7 +259,7 @@ install() {
 uninstall() {
     echo ""
     echo "========================================"
-    echo "  Obsidian Web Clipper 卸载程序"
+    echo "  Web Clipper 卸载程序"
     echo "========================================"
     echo ""
     

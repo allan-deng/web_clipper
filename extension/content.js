@@ -1,5 +1,5 @@
 /**
- * Obsidian Web Clipper - Content Script
+ * Web Clipper - Content Script
  * 
  * Runs in the context of web pages to extract content, process images,
  * and manage highlights. Communicates with background service worker.
@@ -7,7 +7,7 @@
 
 // Prevent multiple injections
 if (window.__obsidianWebClipperLoaded) {
-  console.log('Obsidian Web Clipper: Already loaded');
+  console.log('Web Clipper: Already loaded');
 } else {
   window.__obsidianWebClipperLoaded = true;
 
@@ -113,7 +113,7 @@ if (window.__obsidianWebClipperLoaded) {
     // Add event listener for text selection
     document.addEventListener('mouseup', handleTextSelection);
     
-    console.log('Obsidian Web Clipper: Note mode enabled');
+    console.log('Web Clipper: Note mode enabled');
   }
 
   /**
@@ -136,7 +136,7 @@ if (window.__obsidianWebClipperLoaded) {
     // Remove text selection listener
     document.removeEventListener('mouseup', handleTextSelection);
     
-    console.log('Obsidian Web Clipper: Note mode disabled');
+    console.log('Web Clipper: Note mode disabled');
   }
 
   /**
@@ -1960,5 +1960,5 @@ if (window.__obsidianWebClipperLoaded) {
     });
   }
 
-  console.log('Obsidian Web Clipper: Content script loaded');
+  console.log('Web Clipper: Content script loaded');
 }

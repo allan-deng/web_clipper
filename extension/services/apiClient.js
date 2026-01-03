@@ -1,5 +1,5 @@
 /**
- * API Client for communicating with the Obsidian Web Clipper backend
+ * API Client for communicating with the Web Clipper backend
  */
 
 export class ApiClient {

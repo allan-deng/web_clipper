@@ -1,6 +1,6 @@
-# Obsidian Web Clipper
+# Web Clipper
 
-一款强大的浏览器扩展 + 本地服务工具，让你**零摩擦**地将网页内容一键保存到 Obsidian 知识库。
+一款强大的浏览器扩展 + 本地服务工具，让你**零摩擦**地将网页内容以 markdown 的形式一键保存到本地知识库。
 
 ![Chrome](https://img.shields.io/badge/Chrome-Supported-green?logo=googlechrome)
 ![Edge](https://img.shields.io/badge/Edge-Supported-green?logo=microsoftedge)
@@ -28,7 +28,7 @@ go mod download
 # 创建配置文件
 cp config.example.yaml config.yaml
 
-# 编辑配置 (设置你的 Obsidian Vault 路径)
+# 编辑配置 (设置你的 本地知识库 路径)
 vim config.yaml
 
 # 启动服务
@@ -46,7 +46,7 @@ auth:
   token: "your-secret-token"  # 设置你的认证 Token
 
 vault:
-  path: "/path/to/your/ObsidianVault"  # 你的 Obsidian 库路径
+  path: "/path/to/your/Vault"  # 你的知识库路径
   subdir: "Inbox/WebClips"             # 保存子目录
 ```
 
@@ -68,7 +68,7 @@ vault:
 
 | 操作 | 步骤 |
 |------|------|
-| **保存到 Obsidian** | 打开网页 → 点击扩展图标 → **Save to Obsidian** |
+| **保存到本地** | 打开网页 → 点击扩展图标 → **Save to local** |
 | **复制到剪贴板** | 打开网页 → 点击扩展图标 → **Copy to clipboard** |
 | **添加高亮** | 选中文字 → 点击悬浮菜单 🖍️ |
 | **添加批注** | 选中文字 → 点击悬浮菜单 📝 → 输入批注 |
@@ -121,7 +121,7 @@ tags:
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   Obsidian Vault                        │
+│                   本地知识库                            │
 │  Inbox/WebClips/2025-12-14/文章标题/                    │
 │    ├── 文章标题.md                                      │
 │    └── assets/                                          │
@@ -172,7 +172,7 @@ make release
 
 ```
 dist/
-├── obsidian-web-clipper-extension-v0.1.0.zip  # 浏览器扩展
+├── web-clipper-extension-v0.1.0.zip  # 浏览器扩展
 ├── clipper-server-darwin-amd64-vX.X.X.tar.gz  # macOS Intel
 ├── clipper-server-darwin-arm64-vX.X.X.tar.gz  # macOS Apple Silicon
 ├── clipper-server-windows-amd64-vX.X.X.zip    # Windows
@@ -230,13 +230,13 @@ cd darwin-arm64
 
 | 平台 | 配置文件 | 日志目录 |
 |------|----------|----------|
-| macOS | `~/.config/obsidian-web-clipper/config.yaml` | `~/Library/Logs/ObsidianWebClipper/` |
-| Windows | `%APPDATA%\ObsidianWebClipper\config.yaml` | `%APPDATA%\ObsidianWebClipper\logs\` |
+| macOS | `~/.config/web-clipper/config.yaml` | `~/Library/Logs/WebClipper/` |
+| Windows | `%APPDATA%\WebClipper\config.yaml` | `%APPDATA%\WebClipper\logs\` |
 
 ## 📁 目录结构
 
 ```
-obsidian_web_clipper/
+web_clipper/
 ├── extension/              # 浏览器扩展
 │   ├── manifest.json       # 扩展配置
 │   ├── popup/              # 弹出窗口 UI

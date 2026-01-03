@@ -1,11 +1,12 @@
-// Package handlers provides HTTP handlers for the Obsidian Web Clipper server.
+// Package handlers provides HTTP handlers for the Web Clipper server.
 package handlers
 
 import (
 	"net/http"
 
+	"web-clipper-server/models"
+
 	"github.com/gin-gonic/gin"
-	"obsidian-clipper-server/models"
 )
 
 // HealthHandler handles the GET /health endpoint

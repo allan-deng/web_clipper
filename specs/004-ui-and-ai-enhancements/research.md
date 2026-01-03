@@ -76,7 +76,7 @@ const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     'HTTP-Referer': window.location.origin, // 可选但推荐
-    'X-Title': 'Obsidian Web Clipper' // 可选
+    'X-Title': 'Web Clipper' // 可选
   },
   body: JSON.stringify({
     model: userSelectedModel, // 如 "openai/gpt-4o", "anthropic/claude-3-opus"

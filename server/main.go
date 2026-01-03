@@ -1,4 +1,4 @@
-// Package main is the entry point for the Obsidian Web Clipper server.
+// Package main is the entry point for the Web Clipper server.
 package main
 
 import (
@@ -7,11 +7,12 @@ import (
 	"log"
 	"os"
 
+	"web-clipper-server/config"
+	"web-clipper-server/handlers"
+	"web-clipper-server/middleware"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"obsidian-clipper-server/config"
-	"obsidian-clipper-server/handlers"
-	"obsidian-clipper-server/middleware"
 )
 
 func main() {
@@ -74,7 +75,7 @@ func main() {
 
 	// Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	log.Printf("Starting Obsidian Web Clipper server on %s", addr)
+	log.Printf("Starting Web Clipper server on %s", addr)
 	log.Printf("Vault path: %s/%s", cfg.Vault.Path, cfg.Vault.Subdir)
 
 	if err := router.Run(addr); err != nil {

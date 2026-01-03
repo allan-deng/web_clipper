@@ -1,5 +1,5 @@
 /**
- * Obsidian Web Clipper - Background Service Worker
+ * Web Clipper - Background Service Worker
  * 
  * Handles message passing between content scripts, popup, and the backend API.
  * Runs as a Manifest V3 Service Worker.
@@ -161,4 +161,4 @@ async function handleTriggerClip(tabId) {
 }
 
 // Log service worker lifecycle events
-console.log('Obsidian Web Clipper background service worker started');
+console.log('Web Clipper background service worker started');

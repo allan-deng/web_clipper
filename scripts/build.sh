@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Obsidian Web Clipper - 跨平台构建脚本
+# Web Clipper - 跨平台构建脚本
 #
 # 用法:
 #   ./build.sh              # 构建并打包所有组件
@@ -176,7 +176,7 @@ package_extension() {
     
     mkdir -p "$DIST_DIR"
     
-    local zip_name="obsidian-web-clipper-extension-v${EXT_VERSION}.zip"
+    local zip_name="web-clipper-extension-v${EXT_VERSION}.zip"
     local zip_path="$DIST_DIR/$zip_name"
     
     rm -f "$zip_path"
@@ -253,7 +253,7 @@ package_servers() {
 # 显示帮助
 show_help() {
     echo ""
-    echo -e "${CYAN}Obsidian Web Clipper - 构建脚本${NC}"
+    echo -e "${CYAN}Web Clipper - 构建脚本${NC}"
     echo ""
     echo "用法:"
     echo "  ./build.sh              # 构建并打包所有组件"
@@ -297,7 +297,7 @@ main() {
     
     echo ""
     echo -e "${CYAN}========================================"
-    echo "  Obsidian Web Clipper Build"
+    echo "  Web Clipper Build"
     echo "  Version: $VERSION"
     echo -e "========================================${NC}"
     

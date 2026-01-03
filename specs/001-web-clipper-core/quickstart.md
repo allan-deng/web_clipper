@@ -1,11 +1,11 @@
-# 快速开始: Obsidian Web Clipper & Assistant
+# 快速开始: Web Clipper & Assistant
 
 **功能分支**: `001-web-clipper-core`
 **创建时间**: 2025-12-14
 
 ## 概述
 
-本文档描述如何设置和运行 Obsidian Web Clipper 系统，包括浏览器扩展和本地 Go 服务。
+本文档描述如何设置和运行 Web Clipper 系统，包括浏览器扩展和本地 Go 服务。
 
 ## 前置条件
 

@@ -1,4 +1,4 @@
-# Obsidian Web Clipper - Windows Build Script (PowerShell)
+# Web Clipper - Windows Build Script (PowerShell)
 #
 # 用法:
 #   .\build.ps1                 # 构建所有组件
@@ -153,7 +153,7 @@ function Package-Extension {
     
     New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
     
-    $ZipName = "obsidian-web-clipper-extension-v$ExtVersion.zip"
+    $ZipName = "web-clipper-extension-v$ExtVersion.zip"
     $ZipPath = Join-Path $DistDir $ZipName
     
     if (Test-Path $ZipPath) { Remove-Item $ZipPath }
@@ -250,7 +250,7 @@ function Package-Servers {
 # 显示帮助
 function Show-Help {
     Write-Host ""
-    Write-Host "Obsidian Web Clipper - Windows 构建脚本" -ForegroundColor Cyan
+    Write-Host "Web Clipper - Windows 构建脚本" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "用法:"
     Write-Host "  .\build.ps1                    # 构建并打包所有组件"
@@ -270,7 +270,7 @@ function Show-Help {
 function Main {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  Obsidian Web Clipper Build" -ForegroundColor Cyan
+    Write-Host "  Web Clipper Build" -ForegroundColor Cyan
     Write-Host "  Version: $Version" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     

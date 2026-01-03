@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"obsidian-clipper-server/config"
-	"obsidian-clipper-server/models"
+	"web-clipper-server/config"
+	"web-clipper-server/models"
 )
 
 // Custom error types for specific failure modes
@@ -18,11 +18,11 @@ type AssetWriteError struct{ Msg string }
 type PermissionError struct{ Msg string }
 type SecurityError struct{ Msg string }
 
-func (e *DirCreateError) Error() string      { return e.Msg }
-func (e *MarkdownWriteError) Error() string  { return e.Msg }
-func (e *AssetWriteError) Error() string     { return e.Msg }
-func (e *PermissionError) Error() string     { return e.Msg }
-func (e *SecurityError) Error() string       { return e.Msg }
+func (e *DirCreateError) Error() string     { return e.Msg }
+func (e *MarkdownWriteError) Error() string { return e.Msg }
+func (e *AssetWriteError) Error() string    { return e.Msg }
+func (e *PermissionError) Error() string    { return e.Msg }
+func (e *SecurityError) Error() string      { return e.Msg }
 
 // SaveResult contains the result of a save operation
 type SaveResult struct {
@@ -31,7 +31,7 @@ type SaveResult struct {
 	AssetsCount int
 }
 
-// FileWriter handles writing files to the Obsidian vault
+// FileWriter handles writing files to the local vault
 type FileWriter struct {
 	cfg       *config.Config
 	sanitizer *Sanitizer
@@ -143,7 +143,7 @@ func (w *FileWriter) extractDate(savedAt string) string {
 // getVersionedDir finds an available directory name, adding version suffix if needed
 func (w *FileWriter) getVersionedDir(basePath, dateStr, title string) (string, error) {
 	datePath := filepath.Join(basePath, dateStr)
-	
+
 	// Ensure date directory exists
 	if err := os.MkdirAll(datePath, 0755); err != nil {
 		return "", &DirCreateError{Msg: fmt.Sprintf("failed to create date directory: %s: %s", datePath, err.Error())}

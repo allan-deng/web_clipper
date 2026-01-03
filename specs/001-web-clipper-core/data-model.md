@@ -1,4 +1,4 @@
-# 数据模型: Obsidian Web Clipper & Assistant
+# 数据模型: Web Clipper & Assistant
 
 **功能分支**: `001-web-clipper-core`
 **创建时间**: 2025-12-14

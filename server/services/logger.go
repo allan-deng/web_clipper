@@ -1,4 +1,4 @@
-// Package services provides business logic services for the Obsidian Web Clipper server.
+// Package services provides business logic services for the Web Clipper server.
 package services
 
 import (
@@ -65,7 +65,7 @@ func (l *Logger) formatMessage(level LogLevel, msg string) string {
 	case ERROR:
 		levelStr = "ERROR"
 	}
-	
+
 	if l.prefix != "" {
 		return fmt.Sprintf("[%s] [%s] [%s] %s", timestamp, levelStr, l.prefix, msg)
 	}

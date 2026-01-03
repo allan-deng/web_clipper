@@ -1,4 +1,4 @@
-// Package config provides configuration loading for the Obsidian Web Clipper server.
+// Package config provides configuration loading for the Web Clipper server.
 package config
 
 import (
@@ -29,7 +29,7 @@ type AuthConfig struct {
 	Token string `yaml:"token"`
 }
 
-// VaultConfig contains Obsidian vault settings
+// VaultConfig contains local vault settings
 type VaultConfig struct {
 	Path   string `yaml:"path"`
 	Subdir string `yaml:"subdir"`
@@ -139,7 +139,7 @@ func (c *Config) validate() error {
 // GetMaxBodySizeBytes parses the maxBodySize string and returns bytes
 func (c *Config) GetMaxBodySizeBytes() int64 {
 	size := strings.ToUpper(strings.TrimSpace(c.Server.MaxBodySize))
-	
+
 	var multiplier int64 = 1
 	var numStr string
 

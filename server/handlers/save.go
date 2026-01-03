@@ -3,10 +3,11 @@ package handlers
 import (
 	"net/http"
 
+	"web-clipper-server/config"
+	"web-clipper-server/models"
+	"web-clipper-server/services"
+
 	"github.com/gin-gonic/gin"
-	"obsidian-clipper-server/config"
-	"obsidian-clipper-server/models"
-	"obsidian-clipper-server/services"
 )
 
 // SaveHandler handles the POST /api/v1/save endpoint

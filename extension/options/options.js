@@ -1,5 +1,5 @@
 /**
- * Obsidian Web Clipper - Options Page Script
+ * Web Clipper - Options Page Script
  */
 
 // T001: Default AI Summary Prompt constant

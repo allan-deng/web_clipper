@@ -1,4 +1,4 @@
-// Package models defines data structures for the Obsidian Web Clipper API.
+// Package models defines data structures for the Web Clipper API.
 package models
 
 // SaveRequest represents the request body for POST /api/v1/save

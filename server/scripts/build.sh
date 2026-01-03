@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Build script for Obsidian Web Clipper Backend
+# Build script for Web Clipper Backend
 # 
 # Builds binaries for Windows, Linux, and macOS
 # Creates tar packages for each platform
@@ -12,7 +12,7 @@
 # Don't use set -e as it causes issues with counters and loops
 
 # Configuration
-APP_NAME="obsidian_web_clipper_backend"
+APP_NAME="web_clipper_backend"
 DEFAULT_VERSION="0.1.0"
 VERSION="${1:-$DEFAULT_VERSION}"
 
@@ -103,7 +103,7 @@ create_platform_readme() {
     platform_name=$(get_platform_name "$os")
     
     cat > "$output_dir/README.md" << READMEEOF
-# Obsidian Web Clipper Backend
+# Web Clipper Backend
 
 Version: $VERSION
 Platform: $platform_name ($arch)
@@ -113,7 +113,7 @@ Platform: $platform_name ($arch)
 1. Copy config.example.yaml to config.yaml and edit it:
    cp config.example.yaml config.yaml
 
-2. Edit config.yaml to set your Obsidian vault path and auth token.
+2. Edit config.yaml to set your local vault path and auth token.
 
 3. Run the server:
 READMEEOF
@@ -278,7 +278,7 @@ print_summary() {
 main() {
     echo ""
     echo "=============================================="
-    echo "  Obsidian Web Clipper Backend Build"
+    echo "  Web Clipper Backend Build"
     echo "  Version: $VERSION"
     echo "=============================================="
     echo ""
