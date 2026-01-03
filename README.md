@@ -1,41 +1,43 @@
 # Web Clipper
 
-一款强大的浏览器扩展 + 本地服务工具，让你**零摩擦**地将网页内容以 markdown 的形式一键保存到本地知识库。
+[中文文档](README_ZH.md)
+
+A powerful browser extension + local service tool that allows you to **effortlessly** save web content to your local knowledge base in markdown format with one click.
 
 ![Chrome](https://img.shields.io/badge/Chrome-Supported-green?logo=googlechrome)
 ![Edge](https://img.shields.io/badge/Edge-Supported-green?logo=microsoftedge)
 ![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-## ✨ 功能特性
+## ✨ Features
 
-- **🚀 一键保存** - 网页正文自动提取，转换为干净的 Markdown 格式
-- **🖼️ 图片本地化** - 自动下载图片到本地，确保离线可用
-- **📋 复制到剪贴板** - 无需后端服务，直接复制 Markdown 到剪贴板
-- **🖍️ 高亮与批注** - 在网页上选中文字高亮，添加个人笔记
-- **🤖 AI 智能总结** - 支持 OpenAI / Anthropic / OpenRouter，自动生成摘要和标签
+- **🚀 One-Click Save** - Automatically extract web content and convert to clean Markdown format
+- **🖼️ Local Image Storage** - Automatically download images locally for offline access
+- **📋 Copy to Clipboard** - Copy Markdown directly to clipboard without backend service
+- **🖍️ Highlight & Annotate** - Highlight selected text on web pages and add personal notes
+- **🤖 AI Smart Summary** - Support OpenAI / Anthropic / OpenRouter for auto-generating summaries and tags
 
-## 📦 安装
+## 📦 Installation
 
-### 1. 启动后端服务
+### 1. Start Backend Service
 
 ```bash
 cd server
 
-# 下载依赖
+# Download dependencies
 go mod download
 
-# 创建配置文件
+# Create config file
 cp config.example.yaml config.yaml
 
-# 编辑配置 (设置你的 本地知识库 路径)
+# Edit config (set your local knowledge base path)
 vim config.yaml
 
-# 启动服务
+# Start service
 go run main.go
 ```
 
-**配置文件示例 (`config.yaml`)**:
+**Config file example (`config.yaml`)**:
 
 ```yaml
 server:
@@ -43,223 +45,223 @@ server:
   maxBodySize: "100MB"
 
 auth:
-  token: "your-secret-token"  # 设置你的认证 Token
+  token: "your-secret-token"  # Set your auth token
 
 vault:
-  path: "/path/to/your/Vault"  # 你的知识库路径
-  subdir: "Inbox/WebClips"             # 保存子目录
+  path: "/path/to/your/Vault"  # Your knowledge base path
+  subdir: "Inbox/WebClips"     # Save subdirectory
 ```
 
-### 2. 安装浏览器扩展
+### 2. Install Browser Extension
 
-1. 打开 `chrome://extensions/` (Chrome) 或 `edge://extensions/` (Edge)
-2. 开启 **开发者模式**
-3. 点击 **加载已解压的扩展程序**
-4. 选择项目中的 `extension/` 目录
+1. Open `chrome://extensions/` (Chrome) or `edge://extensions/` (Edge)
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `extension/` directory in the project
 
-### 3. 配置扩展
+### 3. Configure Extension
 
-1. 点击扩展图标 → **Settings**
-2. 设置服务器地址: `http://localhost:18080`
-3. 输入 Auth Token (与后端配置一致)
-4. (可选) 配置 AI 服务的 API Key
+1. Click extension icon → **Settings**
+2. Set server address: `http://localhost:18080`
+3. Enter Auth Token (same as backend config)
+4. (Optional) Configure AI service API Key
 
-## 🎯 使用方法
+## 🎯 Usage
 
-| 操作 | 步骤 |
-|------|------|
-| **保存到本地** | 打开网页 → 点击扩展图标 → **Save to local** |
-| **复制到剪贴板** | 打开网页 → 点击扩展图标 → **Copy to clipboard** |
-| **添加高亮** | 选中文字 → 点击悬浮菜单 🖍️ |
-| **添加批注** | 选中文字 → 点击悬浮菜单 📝 → 输入批注 |
+| Action | Steps |
+|--------|-------|
+| **Save to Local** | Open webpage → Click extension icon → **Save to local** |
+| **Copy to Clipboard** | Open webpage → Click extension icon → **Copy to clipboard** |
+| **Add Highlight** | Select text → Click floating menu 🖍️ |
+| **Add Annotation** | Select text → Click floating menu 📝 → Enter annotation |
 
-## 📄 生成的 Markdown 格式
+## 📄 Generated Markdown Format
 
 ```markdown
 ---
-title: "文章标题"
+title: "Article Title"
 url: "https://example.com/article"
 date: 2025-12-14
 tags:
-  - AI生成标签
+  - AI-generated-tag
 ---
 
-## 摘要
-[AI 生成的核心论点和论据]
+## Summary
+[AI-generated key points and arguments]
 
 ---
 
-## 我的笔记
-> **高亮**: 被高亮的文本
+## My Notes
+> **Highlight**: Highlighted text
 > 
-> 💬 批注: 我的批注内容
+> 💬 Annotation: My annotation content
 
 ---
 
-## 正文
-[文章正文 Markdown 内容]
+## Content
+[Article content in Markdown]
 ```
 
-## 🏗️ 项目架构
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  浏览器扩展 (extension/)                 │
-│  • Readability.js - 网页正文提取                        │
-│  • Turndown.js - HTML → Markdown                       │
-│  • Mark.js - 文本高亮                                   │
+│                Browser Extension (extension/)            │
+│  • Readability.js - Web content extraction              │
+│  • Turndown.js - HTML → Markdown                        │
+│  • Mark.js - Text highlighting                          │
 └─────────────────────────────────────────────────────────┘
                            │
                            │ HTTP POST /api/v1/save
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                  Go 后端服务 (server/)                   │
-│  • Gin Web 框架                                         │
-│  • Token 鉴权                                           │
-│  • 文件原子性写入                                        │
+│                  Go Backend (server/)                    │
+│  • Gin Web Framework                                    │
+│  • Token Authentication                                 │
+│  • Atomic File Writing                                  │
 └─────────────────────────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   本地知识库                            │
-│  Inbox/WebClips/2025-12-14/文章标题/                    │
-│    ├── 文章标题.md                                      │
+│                 Local Knowledge Base                     │
+│  Inbox/WebClips/2025-12-14/Article-Title/               │
+│    ├── Article-Title.md                                 │
 │    └── assets/                                          │
-│        └── [本地化图片]                                  │
+│        └── [localized images]                           │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🛠️ 构建
+## 🛠️ Build
 
-### 使用 Makefile (macOS/Linux)
+### Using Makefile (macOS/Linux)
 
 ```bash
-# 查看所有命令
+# View all commands
 make help
 
-# 打包浏览器扩展 (.zip)
+# Package browser extension (.zip)
 make package-extension
 
-# 构建所有平台 server
+# Build server for all platforms
 make build-server
 
-# 打包所有组件 (扩展 + server)
+# Package all components (extension + server)
 make package
 
-# 创建 Release 包
+# Create Release package
 make release
 ```
 
-### 使用 PowerShell (Windows)
+### Using PowerShell (Windows)
 
 ```powershell
-# 构建并打包所有组件
+# Build and package all components
 .\scripts\build.ps1
 
-# 仅打包扩展
+# Package extension only
 .\scripts\build.ps1 -Target ext
 
-# 仅构建 server
+# Build server only
 .\scripts\build.ps1 -Target server
 
-# 清理构建产物
+# Clean build artifacts
 .\scripts\build.ps1 -Clean
 ```
 
-### 输出文件
+### Output Files
 
-构建完成后，所有发布文件位于 `dist/` 目录：
+After building, all release files are located in the `dist/` directory:
 
 ```
 dist/
-├── web-clipper-extension-v0.1.0.zip  # 浏览器扩展
+├── web-clipper-extension-v0.1.0.zip  # Browser extension
 ├── clipper-server-darwin-amd64-vX.X.X.tar.gz  # macOS Intel
 ├── clipper-server-darwin-arm64-vX.X.X.tar.gz  # macOS Apple Silicon
 ├── clipper-server-windows-amd64-vX.X.X.zip    # Windows
 ├── clipper-server-linux-amd64-vX.X.X.tar.gz   # Linux
-└── checksums.sha256                            # 校验和
+└── checksums.sha256                            # Checksums
 ```
 
-## 🚀 开机自启动
+## 🚀 Auto-Start on Boot
 
-下载的 server 包中包含安装脚本，可一键配置开机自启动。
+The downloaded server package includes installation scripts for one-click auto-start configuration.
 
 ### macOS
 
 ```bash
-# 解压后进入目录
+# Extract and enter directory
 tar -xzf clipper-server-darwin-arm64-vX.X.X.tar.gz
 cd darwin-arm64
 
-# 安装并配置开机自启动
+# Install and configure auto-start
 ./install-macos.sh
 
-# 查看服务状态
+# Check service status
 ./install-macos.sh --status
 
-# 停止/启动/重启服务
+# Stop/Start/Restart service
 ./install-macos.sh --stop
 ./install-macos.sh --start
 ./install-macos.sh --restart
 
-# 卸载
+# Uninstall
 ./install-macos.sh --uninstall
 ```
 
 ### Windows
 
 ```powershell
-# 解压后进入目录，以管理员身份运行 PowerShell
+# Extract and enter directory, run PowerShell as Administrator
 
-# 安装并配置开机自启动
+# Install and configure auto-start
 .\install-windows.ps1
 
-# 查看服务状态
+# Check service status
 .\install-windows.ps1 -Status
 
-# 停止/启动/重启服务
+# Stop/Start/Restart service
 .\install-windows.ps1 -Stop
 .\install-windows.ps1 -Start
 .\install-windows.ps1 -Restart
 
-# 卸载
+# Uninstall
 .\install-windows.ps1 -Uninstall
 ```
 
-### 配置文件位置
+### Config File Locations
 
-| 平台 | 配置文件 | 日志目录 |
-|------|----------|----------|
+| Platform | Config File | Log Directory |
+|----------|-------------|---------------|
 | macOS | `~/.config/web-clipper/config.yaml` | `~/Library/Logs/WebClipper/` |
 | Windows | `%APPDATA%\WebClipper\config.yaml` | `%APPDATA%\WebClipper\logs\` |
 
-## 📁 目录结构
+## 📁 Directory Structure
 
 ```
 web_clipper/
-├── extension/              # 浏览器扩展
-│   ├── manifest.json       # 扩展配置
-│   ├── popup/              # 弹出窗口 UI
-│   ├── options/            # 设置页面
-│   ├── services/           # 业务服务
-│   └── lib/                # 第三方库
-├── server/                 # Go 后端服务
-│   ├── main.go             # 入口
-│   ├── handlers/           # HTTP 处理器
-│   ├── middleware/         # 中间件 (鉴权)
-│   ├── models/             # 数据模型
-│   └── services/           # 业务服务
-├── specs/                  # 功能规格文档
-└── Makefile                # 构建脚本
+├── extension/              # Browser extension
+│   ├── manifest.json       # Extension config
+│   ├── popup/              # Popup UI
+│   ├── options/            # Settings page
+│   ├── services/           # Business services
+│   └── lib/                # Third-party libraries
+├── server/                 # Go backend service
+│   ├── main.go             # Entry point
+│   ├── handlers/           # HTTP handlers
+│   ├── middleware/         # Middleware (auth)
+│   ├── models/             # Data models
+│   └── services/           # Business services
+├── specs/                  # Feature specifications
+└── Makefile                # Build scripts
 ```
 
-## ⚠️ 注意事项
+## ⚠️ Notes
 
-- 仅支持 Chromium 内核浏览器 (Chrome, Edge)
-- 后端服务默认监听 `localhost:18080`
-- 单张图片 > 5MB 将保留远程 URL
-- 单次保存最多支持 20 张图片
-- 页面刷新后高亮会丢失 (一次性会话设计)
+- Only supports Chromium-based browsers (Chrome, Edge)
+- Backend service listens on `localhost:18080` by default
+- Images > 5MB will keep remote URL
+- Maximum 20 images per save
+- Highlights are lost after page refresh (one-time session design)
 
 ## 📜 License
 
