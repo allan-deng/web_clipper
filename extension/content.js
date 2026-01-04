@@ -614,8 +614,8 @@ if (window.__obsidianWebClipperLoaded) {
       if (tags.size >= 15) break;
     }
     
-    // Convert to array and limit to 10 tags
-    return Array.from(tags).slice(0, 10);
+    // Convert to array, remove spaces, and limit to 10 tags
+    return Array.from(tags).map(tag => tag.replace(/\s+/g, '')).slice(0, 10);
   }
 
   /**

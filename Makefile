@@ -134,7 +134,7 @@ build-linux:
 # ============================================
 
 # 打包所有组件
-package: package-extension package-server
+package: update-manifest-version package-extension package-server
 	@echo ""
 	@echo "╔══════════════════════════════════════════════════════════════╗"
 	@echo "║                    打包完成                                   ║"
@@ -144,6 +144,20 @@ package: package-extension package-server
 	@echo ""
 	@ls -lh $(DIST_DIR)/
 	@echo ""
+
+# 更新 manifest.json 版本号 (格式: {git tag}-{git hash 前6位})
+update-manifest-version:
+	@GIT_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "0.1.0"); \
+	GIT_HASH=$$(git rev-parse --short=6 HEAD); \
+	FULL_VERSION="$$GIT_TAG-$$GIT_HASH"; \
+	FULL_VERSION=$${FULL_VERSION#v}; \
+	echo "📝 更新 manifest.json 版本号为: $$FULL_VERSION"; \
+	if command -v jq &> /dev/null; then \
+		jq --arg v "$$FULL_VERSION" '.version = $$v' $(EXTENSION_DIR)/manifest.json > tmp.json && mv tmp.json $(EXTENSION_DIR)/manifest.json; \
+	else \
+		sed -i.bak 's/"version": *"[^"]*"/"version": "'$$FULL_VERSION'"/' $(EXTENSION_DIR)/manifest.json && rm -f $(EXTENSION_DIR)/manifest.json.bak; \
+	fi; \
+	echo "✅ 版本号已更新"
 
 # 打包浏览器扩展
 package-extension:

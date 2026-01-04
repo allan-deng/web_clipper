@@ -52,11 +52,13 @@ tags:
 {{tags}}
 ---
 
+> 文章链接: {{url}}
+
 {{ai_summary}}
 
 {{highlights}}
 
-## 正文
+# 正文
 
 {{content}}`;
 

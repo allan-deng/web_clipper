@@ -13,6 +13,9 @@ const elements = {
   saveBtn: document.getElementById('save-btn'),
   copyBtn: document.getElementById('copy-btn'),
   noteModeToggle: document.getElementById('note-mode-toggle'),
+  aiSummaryToggle: document.getElementById('ai-summary-toggle'),
+  notesSaveBtn: document.getElementById('notes-save-btn'),
+  notesCopyBtn: document.getElementById('notes-copy-btn'),
   progress: document.getElementById('progress'),
   progressFill: document.getElementById('progress-fill'),
   progressText: document.getElementById('progress-text'),
@@ -26,6 +29,8 @@ const elements = {
 // State
 let isClipping = false;
 let isCopying = false;
+let isNotesClipping = false;
+let isNotesCopying = false;
 let currentTabId = null;
 
 /**
@@ -40,6 +45,9 @@ async function init() {
   
   // Load note mode state for current tab
   await loadNoteModeState();
+  
+  // Load AI summary toggle state (default to global setting)
+  await loadAISummaryToggleState();
   
   // Set up event listeners
   setupEventListeners();
@@ -62,6 +70,8 @@ async function loadPageInfo() {
         elements.saveBtn.disabled = false;
         elements.copyBtn.disabled = false;
         elements.noteModeToggle.disabled = false;
+        elements.notesSaveBtn.disabled = false;
+        elements.notesCopyBtn.disabled = false;
       } else {
         showStatusMessage('Cannot clip this page', 'warning');
         elements.noteModeToggle.disabled = true;
@@ -106,6 +116,10 @@ function setupEventListeners() {
   // Note mode toggle
   elements.noteModeToggle.addEventListener('change', handleNoteModeToggle);
   
+  // Notes only buttons
+  elements.notesSaveBtn.addEventListener('click', handleNotesSaveClick);
+  elements.notesCopyBtn.addEventListener('click', handleNotesCopyClick);
+  
   // Settings link click
   elements.settingsLink.addEventListener('click', (e) => {
     e.preventDefault();
@@ -129,6 +143,20 @@ async function loadNoteModeState() {
     // Content script may not be ready, default to off
     console.log('Could not get note mode state:', error.message);
     elements.noteModeToggle.checked = false;
+  }
+}
+
+/**
+ * Load AI summary toggle state (default to global setting)
+ */
+async function loadAISummaryToggleState() {
+  try {
+    const config = await chrome.storage.local.get(['aiEnabled']);
+    elements.aiSummaryToggle.checked = config.aiEnabled || false;
+    console.log('AI Summary toggle initialized to:', config.aiEnabled || false);
+  } catch (error) {
+    console.log('Could not load AI summary setting:', error.message);
+    elements.aiSummaryToggle.checked = false;
   }
 }
 
@@ -192,12 +220,12 @@ async function handleSaveClick() {
     let clipData = clipResponse.data;
     let aiSummary = null;
     
-    // Generate AI Summary if enabled
+    // Generate AI Summary if enabled (use local toggle state)
     try {
-      const config = await chrome.storage.local.get(['aiEnabled']);
-      console.log('Save to local - AI Enabled:', config.aiEnabled);
+      const aiSummaryEnabled = elements.aiSummaryToggle.checked;
+      console.log('Save to local - AI Summary Toggle:', aiSummaryEnabled);
       
-      if (config.aiEnabled) {
+      if (aiSummaryEnabled) {
         updateProgress(40, 'Generating AI summary...');
         
         // Extract plain text for AI from markdown content
@@ -367,13 +395,13 @@ async function handleCopyClick() {
     
     let aiSummary = null;
     
-    // Try to generate AI summary if enabled
+    // Try to generate AI summary if enabled (use local toggle state)
     try {
       console.log('=== Checking AI Summary Settings ===');
-      const config = await chrome.storage.local.get(['aiEnabled']);
-      console.log('aiEnabled from storage:', config.aiEnabled);
+      const aiSummaryEnabled = elements.aiSummaryToggle.checked;
+      console.log('AI Summary Toggle:', aiSummaryEnabled);
       
-      if (config.aiEnabled) {
+      if (aiSummaryEnabled) {
         elements.copyBtn.querySelector('.btn-text').textContent = '生成摘要...';
         
         // Extract plain text content for AI
@@ -454,6 +482,284 @@ async function handleCopyClick() {
 }
 
 /**
+ * Handle notes save button click (notes only, no content)
+ */
+async function handleNotesSaveClick() {
+  if (isNotesClipping) return;
+  
+  isNotesClipping = true;
+  elements.notesSaveBtn.disabled = true;
+  
+  // Show progress
+  showProgress('提取笔记...');
+  
+  try {
+    // Get active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab?.id) {
+      throw new Error('No active tab found');
+    }
+    
+    // Update progress
+    updateProgress(20, '获取高亮和批注...');
+    
+    // Send message to content script to extract raw content
+    const clipResponse = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_RAW_CONTENT' });
+    
+    if (!clipResponse.success) {
+      throw new Error(clipResponse.error || 'Failed to extract content');
+    }
+    
+    // Check if there are any highlights
+    const highlights = clipResponse.data.highlights || [];
+    if (highlights.length === 0) {
+      throw new Error('暂无笔记内容');
+    }
+    
+    let aiSummary = null;
+    
+    // Generate AI Summary if enabled
+    try {
+      const aiSummaryEnabled = elements.aiSummaryToggle.checked;
+      console.log('Notes to local - AI Summary Toggle:', aiSummaryEnabled);
+      
+      if (aiSummaryEnabled) {
+        updateProgress(40, 'Generating AI summary...');
+        
+        // Extract plain text for AI from markdown content
+        const contentForAI = extractPlainTextForAI(clipResponse.data.markdown);
+        console.log('Content for AI length:', contentForAI?.length || 0);
+        
+        if (contentForAI && contentForAI.length > 100) {
+          const aiSummaryText = await generateAISummary(contentForAI);
+          
+          if (aiSummaryText) {
+            aiSummary = {
+              status: 'SUCCESS',
+              rawText: aiSummaryText
+            };
+            console.log('AI summary generated for Notes to local');
+          }
+        } else {
+          console.log('Content too short for AI summary');
+        }
+      }
+    } catch (aiError) {
+      console.warn('AI summary generation failed, continuing without it:', aiError);
+    }
+    
+    // Update progress
+    updateProgress(60, 'Generating Markdown...');
+    
+    // Generate notes-only Markdown (no content section)
+    const notesMarkdown = renderNotesOnlyTemplate({
+      title: clipResponse.data.metadata.title,
+      url: clipResponse.data.metadata.url,
+      domain: clipResponse.data.metadata.domain,
+      savedAt: clipResponse.data.metadata.clippedAt || new Date().toISOString(),
+      tags: clipResponse.data.metadata.tags || [],
+      aiSummary: aiSummary,
+      highlights: highlights
+    });
+    
+    // Prepare clip data for server
+    const metadata = {
+      ...clipResponse.data.metadata,
+      savedAt: clipResponse.data.metadata.savedAt || clipResponse.data.metadata.clippedAt || new Date().toISOString()
+    };
+    
+    const saveData = {
+      metadata: metadata,
+      content: {
+        markdown: notesMarkdown
+      },
+      assets: [] // No assets for notes-only export
+    };
+    
+    updateProgress(80, 'Saving to local...');
+    
+    // Send clip data to background for saving
+    const saveResponse = await chrome.runtime.sendMessage({
+      type: 'SAVE_CLIP',
+      data: saveData
+    });
+    
+    if (!saveResponse.success) {
+      throw new Error(saveResponse.error || 'Failed to save notes');
+    }
+    
+    // Show success
+    updateProgress(100, 'Done!');
+    showResult(true, '笔记保存成功!', saveResponse.data.savedPath);
+    
+  } catch (error) {
+    console.error('Notes save failed:', error);
+    showResult(false, error.message || 'Failed to save notes');
+  } finally {
+    isNotesClipping = false;
+    elements.notesSaveBtn.disabled = false;
+    hideProgress();
+  }
+}
+
+/**
+ * Handle notes copy button click (notes only, no content)
+ */
+async function handleNotesCopyClick() {
+  console.log('=== handleNotesCopyClick called ===');
+  if (isNotesCopying) return;
+  
+  isNotesCopying = true;
+  const originalText = elements.notesCopyBtn.querySelector('.btn-text').textContent;
+  
+  // Disable button and show processing state
+  elements.notesCopyBtn.disabled = true;
+  elements.notesCopyBtn.classList.add('btn-processing');
+  elements.notesCopyBtn.querySelector('.btn-text').textContent = '处理中...';
+  
+  try {
+    // Get active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab?.id) {
+      throw new Error('No active tab found');
+    }
+    
+    // Send message to content script to extract raw content
+    const response = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_RAW_CONTENT' });
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to extract content');
+    }
+    
+    // Check if there are any highlights
+    const highlights = response.data.highlights || [];
+    if (highlights.length === 0) {
+      throw new Error('暂无笔记内容');
+    }
+    
+    let aiSummary = null;
+    
+    // Try to generate AI summary if enabled
+    try {
+      console.log('=== Checking AI Summary Settings for Notes ===');
+      const aiSummaryEnabled = elements.aiSummaryToggle.checked;
+      console.log('AI Summary Toggle:', aiSummaryEnabled);
+      
+      if (aiSummaryEnabled) {
+        elements.notesCopyBtn.querySelector('.btn-text').textContent = '生成摘要...';
+        
+        // Extract plain text content for AI
+        const contentForAI = extractPlainTextForAI(response.data.markdown);
+        console.log('Content for AI length:', contentForAI?.length || 0);
+        
+        if (contentForAI && contentForAI.length > 100) {
+          const aiSummaryText = await generateAISummary(contentForAI);
+          
+          if (aiSummaryText) {
+            aiSummary = {
+              status: 'SUCCESS',
+              rawText: aiSummaryText
+            };
+            console.log('AI summary generated for notes');
+          }
+        } else {
+          console.log('Content too short for AI summary (< 100 chars)');
+        }
+      } else {
+        console.log('AI summary is disabled');
+      }
+    } catch (aiError) {
+      console.warn('AI summary generation failed, continuing without it:', aiError);
+    }
+    
+    // Generate notes-only Markdown
+    const notesMarkdown = renderNotesOnlyTemplate({
+      title: response.data.metadata.title,
+      url: response.data.metadata.url,
+      domain: response.data.metadata.domain,
+      savedAt: response.data.metadata.clippedAt || new Date().toISOString(),
+      tags: response.data.metadata.tags || [],
+      aiSummary: aiSummary,
+      highlights: highlights
+    });
+    
+    // Write to clipboard
+    try {
+      await navigator.clipboard.writeText(notesMarkdown);
+    } catch (clipboardError) {
+      console.error('Clipboard write failed:', clipboardError);
+      throw new Error('无法访问剪贴板，请检查浏览器权限设置');
+    }
+    
+    // Show success state
+    elements.notesCopyBtn.classList.remove('btn-processing');
+    elements.notesCopyBtn.classList.add('btn-success');
+    elements.notesCopyBtn.querySelector('.btn-text').textContent = '已复制!';
+    
+    // Reset button after 2 seconds
+    setTimeout(() => {
+      elements.notesCopyBtn.classList.remove('btn-success');
+      elements.notesCopyBtn.querySelector('.btn-text').textContent = originalText;
+      elements.notesCopyBtn.disabled = false;
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Notes copy failed:', error);
+    
+    // Show error state
+    elements.notesCopyBtn.classList.remove('btn-processing');
+    elements.notesCopyBtn.classList.add('btn-error');
+    elements.notesCopyBtn.querySelector('.btn-text').textContent = error.message || '复制失败';
+    
+    // Reset button after 3 seconds
+    setTimeout(() => {
+      elements.notesCopyBtn.classList.remove('btn-error');
+      elements.notesCopyBtn.querySelector('.btn-text').textContent = originalText;
+      elements.notesCopyBtn.disabled = false;
+    }, 3000);
+  } finally {
+    isNotesCopying = false;
+  }
+}
+
+/**
+ * Render notes-only template (without content section)
+ */
+function renderNotesOnlyTemplate(data) {
+  const lines = [];
+  
+  // YAML Frontmatter
+  lines.push('---');
+  lines.push(`title: "${escapeYamlString(data.title || '')}"`);
+  lines.push(`url: "${escapeYamlString(data.url || '')}"`);
+  lines.push(`date: ${formatDateForTemplate(data.savedAt)}`);
+  lines.push('tags:');
+  if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
+    for (const tag of data.tags) {
+      lines.push(`  - ${tag}`);
+    }
+  }
+  lines.push('---');
+  lines.push('');
+  
+  // AI Summary (if available)
+  const aiSummarySection = formatAISummaryForTemplate(data.aiSummary);
+  if (aiSummarySection) {
+    lines.push(aiSummarySection);
+  }
+  
+  // Highlights section
+  const highlightsSection = formatHighlightsForTemplate(data.highlights);
+  if (highlightsSection) {
+    lines.push(highlightsSection);
+  }
+  
+  return lines.join('\n');
+}
+
+/**
  * Extract plain text content for AI processing
  * Removes frontmatter and markdown syntax
  */
@@ -500,11 +806,13 @@ tags:
 {{tags}}
 ---
 
+> 文章链接: {{url}}
+
 {{ai_summary}}
 
 {{highlights}}
 
-## 正文
+# 正文
 
 {{content}}`;
 
@@ -596,7 +904,7 @@ function formatAISummaryForTemplate(aiSummary) {
     if (!aiSummary.trim()) {
       return '';
     }
-    return `## 摘要\n\n${aiSummary}\n\n---\n`;
+    return `# 摘要\n\n${aiSummary}\n\n---\n`;
   }
 
   // Handle object with status
@@ -606,14 +914,14 @@ function formatAISummaryForTemplate(aiSummary) {
 
   // Use rawText if available
   if (aiSummary.rawText && aiSummary.rawText.trim()) {
-    return `## 摘要\n\n${aiSummary.rawText}\n\n---\n`;
+    return `# 摘要\n\n${aiSummary.rawText}\n\n---\n`;
   }
 
   return '';
 }
 
 /**
- * Format highlights array for template
+ * Format highlights array for template (方案3: 分隔符 + 标题层级)
  */
 function formatHighlightsForTemplate(highlights) {
   if (!highlights || !Array.isArray(highlights) || highlights.length === 0) {
@@ -623,19 +931,29 @@ function formatHighlightsForTemplate(highlights) {
   // Sort by position
   const sorted = [...highlights].sort((a, b) => (a.position || 0) - (b.position || 0));
 
-  const lines = ['## 我的笔记', ''];
+  const lines = ['# 📒 笔记', ''];
   
-  for (const highlight of sorted) {
-    lines.push(`> **高亮**: ${highlight.text}`);
-    if (highlight.note) {
-      lines.push(`> `);
-      lines.push(`> 💬 批注: ${highlight.note}`);
-    }
+  sorted.forEach((highlight, index) => {
+    // 高亮标题
+    lines.push(`## 📌 高亮 ${index + 1}`);
     lines.push('');
-  }
-  
-  lines.push('---');
-  lines.push('');
+    
+    // 高亮内容（多行自然支持）
+    lines.push(highlight.text);
+    lines.push('');
+    
+    // 批注（如果有）
+    if (highlight.note && highlight.note.trim()) {
+      lines.push('### 💬 **笔记**');
+      lines.push('');
+      lines.push(highlight.note);
+      lines.push('');
+    }
+    
+    // 分隔线
+    lines.push('---');
+    lines.push('');
+  });
 
   return lines.join('\n');
 }

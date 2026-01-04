@@ -35,16 +35,41 @@
         </label>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="btn-group">
-        <button id="save-btn" class="btn btn-primary" disabled>
+      <!-- AI Summary Toggle -->
+      <div class="note-toggle-container">
+        <div class="note-toggle-info">
+          <label for="ai-summary-toggle" class="note-toggle-label">🤖 本次生成 AI 摘要</label>
+          <span class="note-toggle-hint">开启后导出时生成 AI 摘要</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ai-summary-toggle" title="切换 AI 摘要">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Action Buttons - Row 1: Full Article -->
+      <div class="btn-row">
+        <button id="save-btn" class="btn btn-primary btn-small" disabled>
           <span class="btn-icon">📥</span>
-          <span class="btn-text">Save to local</span>
+          <span class="btn-text">Save to Local</span>
         </button>
         
-        <button id="copy-btn" class="btn btn-secondary" disabled>
+        <button id="copy-btn" class="btn btn-secondary btn-small" disabled>
           <span class="btn-icon">📋</span>
-          <span class="btn-text">Copy to clipboard</span>
+          <span class="btn-text">Copy to Clipboard</span>
+        </button>
+      </div>
+
+      <!-- Action Buttons - Row 2: Notes Only -->
+      <div class="btn-row">
+        <button id="notes-save-btn" class="btn btn-primary btn-small" disabled>
+          <span class="btn-icon">📥</span>
+          <span class="btn-text">Notes to Local</span>
+        </button>
+        
+        <button id="notes-copy-btn" class="btn btn-secondary btn-small" disabled>
+          <span class="btn-icon">📋</span>
+          <span class="btn-text">Notes to Clipboard</span>
         </button>
       </div>
 

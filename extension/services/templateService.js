@@ -16,11 +16,13 @@ tags:
 {{tags}}
 ---
 
+> 文章链接: {{url}}
+
 {{ai_summary}}
 
 {{highlights}}
 
-## 正文
+# 正文
 
 {{content}}`;
 
@@ -124,7 +126,7 @@ function formatAISummary(aiSummary) {
     if (!aiSummary.trim()) {
       return '';
     }
-    return `## 摘要\n\n${aiSummary}\n\n---\n`;
+    return `# 摘要\n\n${aiSummary}\n\n---\n`;
   }
 
   // Handle object with status
@@ -134,14 +136,14 @@ function formatAISummary(aiSummary) {
 
   // Use rawText if available
   if (aiSummary.rawText && aiSummary.rawText.trim()) {
-    return `## 摘要\n\n${aiSummary.rawText}\n\n---\n`;
+    return `# 摘要\n\n${aiSummary.rawText}\n\n---\n`;
   }
 
   return '';
 }
 
 /**
- * Format highlights array for template
+ * Format highlights array for template (方案3: 分隔符 + 标题层级)
  * @param {Object[]} highlights - Array of highlight objects
  * @returns {string} Formatted highlights section
  */
@@ -153,19 +155,29 @@ function formatHighlights(highlights) {
   // Sort by position
   const sorted = [...highlights].sort((a, b) => (a.position || 0) - (b.position || 0));
 
-  const lines = ['## 我的笔记', ''];
+  const lines = ['# 📒 笔记', ''];
   
-  for (const highlight of sorted) {
-    lines.push(`> **高亮**: ${highlight.text}`);
-    if (highlight.note) {
-      lines.push(`> `);
-      lines.push(`> 💬 批注: ${highlight.note}`);
-    }
+  sorted.forEach((highlight, index) => {
+    // 高亮标题
+    lines.push(`## 📌 高亮 ${index + 1}`);
     lines.push('');
-  }
-  
-  lines.push('---');
-  lines.push('');
+    
+    // 高亮内容（多行自然支持）
+    lines.push(highlight.text);
+    lines.push('');
+    
+    // 批注（如果有）
+    if (highlight.note && highlight.note.trim()) {
+      lines.push('### 💬 **笔记**');
+      lines.push('');
+      lines.push(highlight.note);
+      lines.push('');
+    }
+    
+    // 分隔线
+    lines.push('---');
+    lines.push('');
+  });
 
   return lines.join('\n');
 }

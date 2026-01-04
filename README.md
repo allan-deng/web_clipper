@@ -86,19 +86,29 @@ tags:
   - AI-generated-tag
 ---
 
-## Summary
+> Article link: https://example.com/article
+
+# Summary
+
 [AI-generated key points and arguments]
 
 ---
 
-## My Notes
-> **Highlight**: Highlighted text
-> 
-> 💬 Annotation: My annotation content
+# 📒 Notes
+
+## 📌 Highlight 1
+
+Highlighted text content
+can span multiple lines
+
+### 💬 **Note**
+
+My annotation content
 
 ---
 
-## Content
+# Content
+
 [Article content in Markdown]
 ```
 
@@ -146,6 +156,7 @@ make package-extension
 make build-server
 
 # Package all components (extension + server)
+# Automatically updates manifest.json version to {git tag}-{git hash}
 make package
 
 # Create Release package
