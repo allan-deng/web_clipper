@@ -149,7 +149,7 @@ package: update-manifest-version package-extension package-server
 update-manifest-version:
 	@GIT_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "0.1.0"); \
 	GIT_HASH=$$(git rev-parse --short=6 HEAD); \
-	FULL_VERSION="$$GIT_TAG-$$GIT_HASH"; \
+	FULL_VERSION="$$GIT_TAG"; \
 	FULL_VERSION=$${FULL_VERSION#v}; \
 	echo "📝 更新 manifest.json 版本号为: $$FULL_VERSION"; \
 	if command -v jq &> /dev/null; then \
